@@ -1090,37 +1090,42 @@
 
     <script>
         // ============================================================
-        // 1. ПРОВЕРЯЕМ, ЧТО SUPABASE ЗАГРУЗИЛСЯ
-        // ============================================================
-        console.log('🔍 Проверка загрузки Supabase...');
-        console.log('typeof supabaseJs:', typeof supabaseJs);
-
-        // Если supabaseJs не загружен — показываем ошибку
-        if (typeof supabaseJs === 'undefined') {
-            alert('❌ Ошибка: Supabase не загружен. Проверьте интернет-соединение и перезагрузите страницу.');
-            console.error('❌ Supabase не загружен!');
-        } else {
-            console.log('✅ Supabase загружен!');
-        }
-
-        // ============================================================
-        // 2. СОЗДАЁМ КЛИЕНТ SUPABASE
+        // 🔥 ПОДКЛЮЧЕНИЕ К SUPABASE (С ТВОИМИ КЛЮЧАМИ)
         // ============================================================
         const SUPABASE_URL = 'https://fgrpcjdrnbdifnhjwduk.supabase.co';
-        const SUPABASE_ANON_KEY =
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZncnBjamRybmJkaWZuaGp3ZHVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczMzM2ODIsImV4cCI6MjEwMjkwOTY4Mn0.p7VcUc79EI--Th596UTTxht55CH00lLIC_ZYxsXGlNg';
+        const SUPABASE_ANON_KEY = 'sb_publishable_JM36Q3P15HH-to1Wj34VSg_jGjKJZhb';
 
-        // СОЗДАЁМ КЛИЕНТ (ГЛАВНОЕ ИСПРАВЛЕНИЕ!)
-        const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // Проверяем, что supabaseJs загружен
+        if (typeof supabaseJs === 'undefined') {
+            alert('❌ Ошибка: Supabase не загружен. Проверьте интернет-соединение.');
+            console.error('❌ Supabase не загружен!');
+        }
 
+        // Создаём клиент
+        var supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         console.log('✅ Supabase клиент создан!');
         console.log('🔗 URL:', SUPABASE_URL);
+        console.log('🔑 Ключ:', SUPABASE_ANON_KEY.substring(0, 20) + '...');
 
-        // Проверяем, что клиент работает
-        console.log('supabase.from:', typeof supabase.from); // должно быть 'function'
+        // Проверяем, работает ли подключение
+        (async function testConnection() {
+            try {
+                const { data, error } = await supabase.from('players').select('*').limit(1);
+                if (error) {
+                    console.warn('⚠️ Ошибка подключения к Supabase:', error.message);
+                    console.warn('⚠️ Данные будут сохраняться в localStorage');
+                } else {
+                    console.log('✅ Подключение к Supabase работает!');
+                    console.log('📊 Данные в таблице players:', data);
+                }
+            } catch (e) {
+                console.warn('⚠️ Ошибка подключения к Supabase:', e.message);
+                console.warn('⚠️ Данные будут сохраняться в localStorage');
+            }
+        })();
 
         // ============================================================
-        // 3. ФУНКЦИИ РАБОТЫ С БАЗОЙ
+        // ФУНКЦИИ РАБОТЫ С БАЗОЙ (ОБЛАЧНОЙ)
         // ============================================================
         async function savePlayerToCloud(name, data) {
             try {
@@ -1149,7 +1154,7 @@
                         updated_at: new Date().toISOString()
                     }, { onConflict: 'name' });
                 if (error) {
-                    console.error('Ошибка сохранения:', error);
+                    console.error('Ошибка сохранения в Supabase:', error);
                     saveToLocalStorage(name, data);
                     return false;
                 }
@@ -1187,7 +1192,7 @@
                     .eq('name', name)
                     .maybeSingle();
                 if (error) {
-                    console.error('Ошибка получения:', error);
+                    console.error('Ошибка получения из Supabase:', error);
                     return getFromLocalStorage(name);
                 }
                 if (!data) return getFromLocalStorage(name);
@@ -1225,7 +1230,7 @@
                     .select('*')
                     .order('ended_at', { ascending: false });
                 if (error) {
-                    console.error('Ошибка получения всех:', error);
+                    console.error('Ошибка получения всех из Supabase:', error);
                     return getAllFromLocalStorage();
                 }
                 const result = {};
@@ -1274,7 +1279,7 @@
         }
 
         // ============================================================
-        // 4. ДИСКЛЕЙМЕР
+        // 1. ДИСКЛЕЙМЕР
         // ============================================================
         function openDisclaimer() {
             document.getElementById('disclaimerOverlay').classList.add('active');
@@ -1297,7 +1302,7 @@
         }
 
         // ============================================================
-        // 5. АДМИН ПАРОЛЬ
+        // 2. АДМИН ПАРОЛЬ
         // ============================================================
         const ADMIN_PASSWORD = 'Win44Vad';
 
@@ -1328,7 +1333,7 @@
         });
 
         // ============================================================
-        // 6. ХРАНИЛИЩЕ
+        // 3. ХРАНИЛИЩЕ
         // ============================================================
         const TIME_LIMIT = 25;
         let playerName = '';
@@ -1348,7 +1353,7 @@
         }
 
         // ============================================================
-        // 7. ВОПРОСЫ
+        // 4. ВОПРОСЫ
         // ============================================================
         const testQuestions = [
             { id: 1, text: "Какой мой любимый жанр фильмов/сериалов?", options: [{ text: "Драма / психологическое кино", score: 1 }, { text: "Комедия / лёгкое кино", score: 2 }, { text: "Фантастика / фэнтези", score: 3 }, { text: "Боевики / триллеры", score: 4 }] },
@@ -1426,7 +1431,7 @@
         };
 
         // ============================================================
-        // 8. СТАРТ
+        // 5. СТАРТ
         // ============================================================
         async function startQuiz() {
             console.log('🚀 startQuiz вызвана!');
@@ -1496,7 +1501,7 @@
         }
 
         // ============================================================
-        // 9. ПОКАЗ ВОПРОСА
+        // 6. ПОКАЗ ВОПРОСА
         // ============================================================
         function getCurrentQuestion(game) {
             if (game.currentPhase === 'test') {
@@ -1571,7 +1576,7 @@
         }
 
         // ============================================================
-        // 10. ОБРАБОТКА ОТВЕТА
+        // 7. ОБРАБОТКА ОТВЕТА
         // ============================================================
         async function selectAnswer(index) {
             if (isAnswering) return;
@@ -1671,7 +1676,7 @@
         }
 
         // ============================================================
-        // 11. ГРАФИК
+        // 8. ГРАФИК
         // ============================================================
         function renderBranchGraph(branchHistory) {
             const branchRows = ['hard', 'medium', 'easy'];
@@ -1757,7 +1762,7 @@
         }
 
         // ============================================================
-        // 12. ФИНАЛ
+        // 9. ФИНАЛ
         // ============================================================
         async function finishQuiz() {
             const game = await getPlayerFromCloud(playerName);
@@ -1902,7 +1907,7 @@
         }
 
         // ============================================================
-        // 13. АДМИН
+        // 10. АДМИН
         // ============================================================
         async function renderAdmin() {
             const players = await getAllPlayers();
@@ -2011,7 +2016,7 @@
         });
 
         // ============================================================
-        // 14. УДАЛЕНИЕ (ОБЛАКО)
+        // 11. УДАЛЕНИЕ (ОБЛАКО)
         // ============================================================
         async function deletePlayer(name) {
             if (!confirm(`Удалить игрока "${name}"?`)) return;
@@ -2044,7 +2049,7 @@
         }
 
         // ============================================================
-        // 15. ЗАПУСК
+        // 12. ЗАПУСК
         // ============================================================
         document.getElementById('player-name').addEventListener('keydown', function(e) {
             if (e.key === 'Enter') openDisclaimer();
