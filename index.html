@@ -9,7 +9,6 @@
     </script>
 
     <style>
-        /* ====== ВСЕ СТИЛИ ====== */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -1041,14 +1040,6 @@
         const SUPABASE_URL = 'https://fgrpcjdrnbdifnhjwduk.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_JM36Q3P15HH-to1Wj34VSg_jGjKZhb';
 
-        // Проверяем, что supabaseJs загружен
-        if (typeof supabaseJs === 'undefined') {
-            console.error('❌ supabaseJs не загружен!');
-            alert('Ошибка: библиотека Supabase не загружена. Проверьте интернет-соединение.');
-        } else {
-            console.log('✅ supabaseJs загружен');
-        }
-
         // Создаем клиент ТОЛЬКО ОДИН РАЗ
         const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         console.log('✅ Supabase клиент создан');
@@ -1065,7 +1056,7 @@
                     .limit(1);
 
                 if (error && error.code === '42P01') {
-                    console.error('❌ Таблица не найдена! Создайте её в Supabase Dashboard.');
+                    console.error('❌ Таблица не найдена!');
                     document.getElementById('adminStatus').textContent = '⚠️ Таблица не создана';
                     return false;
                 }
@@ -1141,18 +1132,6 @@
             closeDisclaimer();
             setTimeout(startQuiz, 300);
         }
-
-        // Обработчик чекбокса
-        document.addEventListener('DOMContentLoaded', function() {
-            const check = document.getElementById('disclaimerCheck');
-            const btn = document.getElementById('acceptBtn');
-            if (check && btn) {
-                check.addEventListener('change', function() {
-                    btn.disabled = !this.checked;
-                    console.log('🔄 Чекбокс:', this.checked ? 'отмечен' : 'не отмечен');
-                });
-            }
-        });
 
         // ============================================================
         // 🔐 АДМИН ПАРОЛЬ
@@ -1230,7 +1209,7 @@
         }
 
         // ============================================================
-        // 🎯 СТАРТ ИГРЫ (упрощенная версия для теста)
+        // 🎯 СТАРТ ИГРЫ
         // ============================================================
         let playerName = '';
 
@@ -1318,7 +1297,6 @@
                 playerName = name;
                 showToast('🎮 Игра началась! Удачи!', 'success');
                 showScreen('quiz-screen');
-                // Здесь будет логика вопросов
                 
             } catch (e) {
                 console.error('❌ Критическая ошибка:', e);
