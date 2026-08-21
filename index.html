@@ -5,11 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>На сколько хорошо ты меня знаешь?</title>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-    </script>
-
     <style>
-        /* ====== ВСЕ СТИЛИ ====== */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -976,7 +972,7 @@
                 </p>
                 <input id="player-name" type="text" maxlength="50" placeholder="Введите своё имя">
                 <div class="input-error" id="nameError" style="color:#ff5c6c;font-size:14px;margin-top:-8px;margin-bottom:10px;min-height:20px;"></div>
-                <button class="primary" onclick="openDisclaimer()">Начать викторину →</button>
+                <button class="primary" onclick="openDisclaimer()" id="startBtn">Начать викторину →</button>
                 <button class="secondary" onclick="openAdminPassword()">⚙️ Админ-панель</button>
             </div>
         </section>
@@ -1089,157 +1085,10 @@
 
     <script>
         // ============================================================
-        // 🔥 ПОДКЛЮЧЕНИЕ К SUPABASE
+        // ВСЯ ЛОГИКА ВИКТОРИНЫ (localStorage — РАБОТАЕТ ВСЕГДА)
         // ============================================================
-        const SUPABASE_URL = 'https://fgrpcjdrnbdifnhjwduk.supabase.co';
-        const SUPABASE_ANON_KEY =
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZncnBjamRybmJkaWZuaGp3ZHVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczMzM2ODIsImV4cCI6MjEwMjkwOTY4Mn0.p7VcUc79EI--Th596UTTxht55CH00lLIC_ZYxsXGlNg';
 
-        const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        // ============================================================
-        // РАБОТА С БАЗОЙ (облачной)
-        // ============================================================
-        async function savePlayerToCloud(name, data) {
-            try {
-                const { error } = await supabase
-                    .from('players')
-                    .upsert({
-                        name: name,
-                        is_active: data.isActive || false,
-                        completed: data.completed || false,
-                        timeout: data.timeout || false,
-                        started_at: data.startedAt || null,
-                        ended_at: data.endedAt || null,
-                        current_phase: data.currentPhase || 'test',
-                        current_question: data.currentQuestion || 0,
-                        current_branch: data.currentBranch || null,
-                        test_scores: JSON.stringify(data.testScores || []),
-                        main_answers: JSON.stringify(data.mainAnswers || []),
-                        branch_history: JSON.stringify(data.branchHistory || []),
-                        total_questions: data.totalQuestions || 15,
-                        green_count: data.greenCount || 0,
-                        yellow_count: data.yellowCount || 0,
-                        red_count: data.redCount || 0,
-                        timeout_count: data.timeoutCount || 0,
-                        secret_answered: data.secretAnswered || false,
-                        secret_answer: data.secretAnswer || '',
-                        updated_at: new Date().toISOString()
-                    }, { onConflict: 'name' });
-                if (error) {
-                    console.error('Ошибка сохранения:', error);
-                    // Если ошибка, пробуем через localStorage
-                    saveToLocalStorage(name, data);
-                    return false;
-                }
-                return true;
-            } catch (e) {
-                console.error('Ошибка:', e);
-                // Если ошибка, пробуем через localStorage
-                saveToLocalStorage(name, data);
-                return false;
-            }
-        }
-
-        // Резервное сохранение в localStorage
-        function saveToLocalStorage(name, data) {
-            const players = JSON.parse(localStorage.getItem('quiz_players') || '{}');
-            players[name] = data;
-            localStorage.setItem('quiz_players', JSON.stringify(players));
-        }
-
-        function getFromLocalStorage(name) {
-            const players = JSON.parse(localStorage.getItem('quiz_players') || '{}');
-            return players[name] || null;
-        }
-
-        function getAllFromLocalStorage() {
-            return JSON.parse(localStorage.getItem('quiz_players') || '{}');
-        }
-
-        async function getPlayerFromCloud(name) {
-            try {
-                const { data, error } = await supabase
-                    .from('players')
-                    .select('*')
-                    .eq('name', name)
-                    .maybeSingle();
-                if (error) {
-                    console.error('Ошибка получения:', error);
-                    return getFromLocalStorage(name);
-                }
-                if (!data) return getFromLocalStorage(name);
-                return {
-                    name: data.name,
-                    isActive: data.is_active,
-                    completed: data.completed,
-                    timeout: data.timeout,
-                    startedAt: data.started_at,
-                    endedAt: data.ended_at,
-                    currentPhase: data.current_phase,
-                    currentQuestion: data.current_question,
-                    currentBranch: data.current_branch,
-                    testScores: JSON.parse(data.test_scores || '[]'),
-                    mainAnswers: JSON.parse(data.main_answers || '[]'),
-                    branchHistory: JSON.parse(data.branch_history || '[]'),
-                    totalQuestions: data.total_questions || 15,
-                    greenCount: data.green_count || 0,
-                    yellowCount: data.yellow_count || 0,
-                    redCount: data.red_count || 0,
-                    timeoutCount: data.timeout_count || 0,
-                    secretAnswered: data.secret_answered || false,
-                    secretAnswer: data.secret_answer || ''
-                };
-            } catch (e) {
-                console.error('Ошибка:', e);
-                return getFromLocalStorage(name);
-            }
-        }
-
-        async function getAllPlayers() {
-            try {
-                const { data, error } = await supabase
-                    .from('players')
-                    .select('*')
-                    .order('ended_at', { ascending: false });
-                if (error) {
-                    console.error('Ошибка получения всех:', error);
-                    return getAllFromLocalStorage();
-                }
-                const result = {};
-                data.forEach(row => {
-                    result[row.name] = {
-                        name: row.name,
-                        isActive: row.is_active,
-                        completed: row.completed,
-                        timeout: row.timeout,
-                        startedAt: row.started_at,
-                        endedAt: row.ended_at,
-                        currentPhase: row.current_phase,
-                        currentQuestion: row.current_question,
-                        currentBranch: row.current_branch,
-                        testScores: JSON.parse(row.test_scores || '[]'),
-                        mainAnswers: JSON.parse(row.main_answers || '[]'),
-                        branchHistory: JSON.parse(row.branch_history || '[]'),
-                        totalQuestions: row.total_questions || 15,
-                        greenCount: row.green_count || 0,
-                        yellowCount: row.yellow_count || 0,
-                        redCount: row.red_count || 0,
-                        timeoutCount: row.timeout_count || 0,
-                        secretAnswered: row.secret_answered || false,
-                        secretAnswer: row.secret_answer || ''
-                    };
-                });
-                return result;
-            } catch (e) {
-                console.error('Ошибка:', e);
-                return getAllFromLocalStorage();
-            }
-        }
-
-        // ============================================================
-        // 1. ДИСКЛЕЙМЕР
-        // ============================================================
+        // ---------- ДИСКЛЕЙМЕР ----------
         function openDisclaimer() {
             document.getElementById('disclaimerOverlay').classList.add('active');
             document.getElementById('disclaimerCheck').checked = false;
@@ -1257,12 +1106,11 @@
         function acceptDisclaimer() {
             if (!document.getElementById('disclaimerCheck').checked) return;
             closeDisclaimer();
-            setTimeout(startQuiz, 400);
+            // Запускаем игру через 300мс
+            setTimeout(startQuiz, 300);
         }
 
-        // ============================================================
-        // 2. АДМИН ПАРОЛЬ
-        // ============================================================
+        // ---------- АДМИН ПАРОЛЬ ----------
         const ADMIN_PASSWORD = 'Win44Vad';
 
         function openAdminPassword() {
@@ -1291,9 +1139,8 @@
             if (e.key === 'Enter') checkAdminPassword();
         });
 
-        // ============================================================
-        // 3. ОСТАЛЬНОЙ КОД (вопросы, логика)
-        // ============================================================
+        // ---------- ХРАНИЛИЩЕ ----------
+        const STORAGE_KEY = 'quiz_players';
         const TIME_LIMIT = 25;
         let playerName = '';
         let currentQuestionIndex = 0;
@@ -1304,6 +1151,49 @@
         let secretUnlocked = false;
         let secretAnswered = false;
 
+        function getPlayers() {
+            try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { return {}; }
+        }
+
+        function savePlayers(p) { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); }
+
+        function getPlayer(name) {
+            const players = getPlayers();
+            return players[name] || null;
+        }
+
+        function savePlayer(name, data) {
+            const players = getPlayers();
+            players[name] = data;
+            savePlayers(players);
+        }
+
+        function deletePlayer(name) {
+            if (!confirm(`Удалить игрока "${name}"?`)) return;
+            const players = getPlayers();
+            delete players[name];
+            savePlayers(players);
+            renderAdmin();
+        }
+
+        function clearAllData() {
+            if (!confirm('🗑️ Удалить ВСЕ данные?')) return;
+            localStorage.removeItem(STORAGE_KEY);
+            renderAdmin();
+        }
+
+        function exportData() {
+            const data = getPlayers();
+            if (Object.keys(data).length === 0) { alert('Нет данных'); return; }
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `quiz_data_${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(id).classList.add('active');
@@ -1311,7 +1201,7 @@
             if (id === 'admin-screen') renderAdmin();
         }
 
-        // ===== ВОПРОСЫ =====
+        // ---------- ВОПРОСЫ ----------
         const testQuestions = [
             { id: 1, text: "Какой мой любимый жанр фильмов/сериалов?", options: [{ text: "Драма / психологическое кино", score: 1 }, { text: "Комедия / лёгкое кино", score: 2 }, { text: "Фантастика / фэнтези", score: 3 }, { text: "Боевики / триллеры", score: 4 }] },
             { id: 2, text: "Что для меня важнее всего в жизни?", options: [{ text: "Самореализация и развитие", score: 2 }, { text: "Отношения и близкие люди", score: 4 }, { text: "Свобода и независимость", score: 1 }, { text: "Стабильность и комфорт", score: 3 }] },
@@ -1387,10 +1277,10 @@
             type: "text"
         };
 
-        // ============================================================
-        // 4. СТАРТ И ОСНОВНАЯ ЛОГИКА
-        // ============================================================
-        async function startQuiz() {
+        // ---------- СТАРТ ----------
+        function startQuiz() {
+            console.log('startQuiz вызвана!');
+
             const nameInput = document.getElementById('player-name');
             const name = nameInput.value.trim();
             const errorEl = document.getElementById('nameError');
@@ -1415,7 +1305,7 @@
             errorEl.textContent = '';
             nameInput.style.borderColor = '';
 
-            const existing = await getPlayerFromCloud(name);
+            const existing = getPlayer(name);
             if (existing && (existing.completed || existing.timeout)) {
                 errorEl.textContent = '⛔ Вы уже проходили эту викторину!';
                 nameInput.style.borderColor = '#ff5c6c';
@@ -1449,12 +1339,13 @@
                 secretAnswered: false,
                 secretAnswer: ''
             };
-            await savePlayerToCloud(name, game);
+            savePlayer(name, game);
 
             showScreen('quiz-screen');
             showQuestion();
         }
 
+        // ---------- ПОКАЗ ВОПРОСА ----------
         function getCurrentQuestion(game) {
             if (game.currentPhase === 'test') {
                 const idx = game.currentQuestion;
@@ -1470,8 +1361,8 @@
             }
         }
 
-        async function showQuestion() {
-            const game = await getPlayerFromCloud(playerName);
+        function showQuestion() {
+            const game = getPlayer(playerName);
             if (!game || !game.isActive) {
                 showScreen('start-screen');
                 return;
@@ -1527,12 +1418,13 @@
             el.classList.toggle('danger', timer <= 5);
         }
 
-        async function selectAnswer(index) {
+        // ---------- ОБРАБОТКА ОТВЕТА ----------
+        function selectAnswer(index) {
             if (isAnswering) return;
             isAnswering = true;
             clearInterval(timerInterval);
 
-            const game = await getPlayerFromCloud(playerName);
+            const game = getPlayer(playerName);
             if (!game || !game.isActive) return;
             const question = getCurrentQuestion(game);
             if (!question) return;
@@ -1548,10 +1440,10 @@
                 isAnswering = false; }, 400);
         }
 
-        async function handleTimeout() {
+        function handleTimeout() {
             if (isAnswering) return;
             isAnswering = true;
-            const game = await getPlayerFromCloud(playerName);
+            const game = getPlayer(playerName);
             if (!game || !game.isActive) return;
 
             document.getElementById('timeoutOverlay').style.display = 'block';
@@ -1573,11 +1465,11 @@
                 game.branchHistory.push('timeout');
                 game.timeoutCount++;
             }
-            await savePlayerToCloud(playerName, game);
+            savePlayer(playerName, game);
         }
 
-        async function processAnswer(score) {
-            const game = await getPlayerFromCloud(playerName);
+        function processAnswer(score) {
+            const game = getPlayer(playerName);
             if (!game || !game.isActive) return;
             const question = getCurrentQuestion(game);
             if (!question) return;
@@ -1592,7 +1484,7 @@
                     game.currentPhase = 'main';
                     game.currentQuestion = testQuestions.length;
                     game.branchHistory.push(startBranch);
-                    await savePlayerToCloud(playerName, game);
+                    savePlayer(playerName, game);
                     showQuestion();
                     return;
                 }
@@ -1620,10 +1512,11 @@
                 return;
             }
 
-            await savePlayerToCloud(playerName, game);
+            savePlayer(playerName, game);
             showQuestion();
         }
 
+        // ---------- ГРАФИК ----------
         function renderBranchGraph(branchHistory) {
             const branchRows = ['hard', 'medium', 'easy'];
             const totalQuestions = 10;
@@ -1707,13 +1600,14 @@
             }
         }
 
-        async function finishQuiz() {
-            const game = await getPlayerFromCloud(playerName);
+        // ---------- ФИНАЛ ----------
+        function finishQuiz() {
+            const game = getPlayer(playerName);
             if (!game) return;
             game.isActive = false;
             game.completed = true;
             game.endedAt = new Date().toISOString();
-            await savePlayerToCloud(playerName, game);
+            savePlayer(playerName, game);
 
             const total = game.totalQuestions;
             const green = game.greenCount;
@@ -1763,8 +1657,8 @@
             document.getElementById('result-message').textContent =
                 `Ты ответил правильно на ${green} из ${total} вопросов (${greenPercent}%)`;
 
-            const allPlayers = await getAllPlayers();
-            const completed = Object.values(allPlayers).filter(p => p.completed && p.name !== playerName);
+            const players = getPlayers();
+            const completed = Object.values(players).filter(p => p.completed && p.name !== playerName);
             const better = completed.filter(p => (p.greenCount || 0) / (p.totalQuestions || 15) * 100 < greenPercent).length;
             const totalPlayers = completed.length + 1;
             const betterPercent = totalPlayers > 0 ? Math.round((better / totalPlayers) * 100) : 0;
@@ -1813,11 +1707,11 @@
                 <span class="message">Иногда прошлое живёт в нас дольше, чем мы готовы признать.</span>
             `;
 
-            const game = getPlayerFromCloud(playerName);
+            const game = getPlayer(playerName);
             if (game) {
                 game.secretAnswered = true;
                 game.secretAnswer = answer;
-                savePlayerToCloud(playerName, game);
+                savePlayer(playerName, game);
             }
 
             setTimeout(launchConfetti, 500);
@@ -1849,11 +1743,9 @@
             }
         }
 
-        // ============================================================
-        // 5. АДМИН
-        // ============================================================
-        async function renderAdmin() {
-            const players = await getAllPlayers();
+        // ---------- АДМИН ----------
+        function renderAdmin() {
+            const players = getPlayers();
             const tbody = document.getElementById('adminBody');
             const names = Object.keys(players);
             if (names.length === 0) {
@@ -1891,8 +1783,8 @@
             }).join('');
         }
 
-        async function viewAnswers(name) {
-            const p = await getPlayerFromCloud(name);
+        function viewAnswers(name) {
+            const p = getPlayer(name);
             if (!p) return;
             document.getElementById('modalTitle').textContent = `📋 Ответы: ${name}`;
             const body = document.getElementById('modalBody');
@@ -1958,65 +1850,11 @@
             if (e.target === this) closeModal();
         });
 
-        // ============================================================
-        // 6. УДАЛЕНИЕ
-        // ============================================================
-        async function deletePlayer(name) {
-            if (!confirm(`Удалить игрока "${name}"?`)) return;
-            try {
-                const { error } = await supabase.from('players').delete().eq('name', name);
-                if (error) console.error('Ошибка удаления:', error);
-            } catch (e) {
-                console.error('Ошибка:', e);
-            }
-            // Удаляем и из localStorage
-            const players = JSON.parse(localStorage.getItem('quiz_players') || '{}');
-            delete players[name];
-            localStorage.setItem('quiz_players', JSON.stringify(players));
-            renderAdmin();
-        }
-
-        async function clearAllData() {
-            if (!confirm('🗑️ Удалить ВСЕ данные?')) return;
-            try {
-                const { error } = await supabase.from('players').delete().neq('name', '');
-                if (error) console.error('Ошибка очистки:', error);
-            } catch (e) {
-                console.error('Ошибка:', e);
-            }
-            localStorage.removeItem('quiz_players');
-            renderAdmin();
-        }
-
-        async function exportData() {
-            const players = await getAllPlayers();
-            if (Object.keys(players).length === 0) { alert('Нет данных'); return; }
-            const b = new Blob([JSON.stringify(players, null, 2)], { type: 'application/json' });
-            const u = URL.createObjectURL(b);
-            const a = document.createElement('a');
-            a.href = u;
-            a.download = `quiz_data_${new Date().toISOString().slice(0, 10)}.json`;
-            a.click();
-            URL.revokeObjectURL(u);
-        }
-
-        // ============================================================
-        // 7. ЗАПУСК
-        // ============================================================
+        // ---------- ЗАПУСК ----------
         document.getElementById('player-name').addEventListener('keydown', function(e) {
             if (e.key === 'Enter') openDisclaimer();
         });
         showScreen('start-screen');
-
-        // Подписка на изменения в реальном времени
-        supabase
-            .channel('players_changes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, () => {
-                if (document.getElementById('admin-screen').classList.contains('active')) {
-                    renderAdmin();
-                }
-            })
-            .subscribe();
     </script>
 </body>
 </html>
