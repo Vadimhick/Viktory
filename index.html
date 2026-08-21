@@ -5,7 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>На сколько хорошо ты меня знаешь?</title>
 
+    <!-- Подключаем Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+    </script>
+
     <style>
+        /* ====== ВСЕ СТИЛИ ====== */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -1085,10 +1090,182 @@
 
     <script>
         // ============================================================
-        // ВСЯ ЛОГИКА ВИКТОРИНЫ (localStorage — РАБОТАЕТ ВСЕГДА)
+        // 🔥 ПОДКЛЮЧЕНИЕ К SUPABASE (ОБЛАКО)
         // ============================================================
+        const SUPABASE_URL = 'https://fgrpcjdrnbdifnhjwduk.supabase.co';
+        const SUPABASE_ANON_KEY =
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZncnBjamRybmJkaWZuaGp3ZHVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczMzM2ODIsImV4cCI6MjEwMjkwOTY4Mn0.p7VcUc79EI--Th596UTTxht55CH00lLIC_ZYxsXGlNg';
 
-        // ---------- ДИСКЛЕЙМЕР ----------
+        // Проверяем, что supabase не объявлен повторно
+        if (typeof supabase === 'undefined') {
+            var supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        }
+
+        // ============================================================
+        // ОТЛАДКА В КОНСОЛИ (для проверки подключения)
+        // ============================================================
+        console.log('✅ Supabase подключен!');
+        console.log('🔗 URL:', SUPABASE_URL);
+
+        // ============================================================
+        // ФУНКЦИИ РАБОТЫ С БАЗОЙ (ОБЛАЧНОЙ)
+        // ============================================================
+        async function savePlayerToCloud(name, data) {
+            try {
+                const { error } = await supabase
+                    .from('players')
+                    .upsert({
+                        name: name,
+                        is_active: data.isActive || false,
+                        completed: data.completed || false,
+                        timeout: data.timeout || false,
+                        started_at: data.startedAt || null,
+                        ended_at: data.endedAt || null,
+                        current_phase: data.currentPhase || 'test',
+                        current_question: data.currentQuestion || 0,
+                        current_branch: data.currentBranch || null,
+                        test_scores: JSON.stringify(data.testScores || []),
+                        main_answers: JSON.stringify(data.mainAnswers || []),
+                        branch_history: JSON.stringify(data.branchHistory || []),
+                        total_questions: data.totalQuestions || 15,
+                        green_count: data.greenCount || 0,
+                        yellow_count: data.yellowCount || 0,
+                        red_count: data.redCount || 0,
+                        timeout_count: data.timeoutCount || 0,
+                        secret_answered: data.secretAnswered || false,
+                        secret_answer: data.secretAnswer || '',
+                        updated_at: new Date().toISOString()
+                    }, { onConflict: 'name' });
+                if (error) {
+                    console.error('Ошибка сохранения:', error);
+                    // Если ошибка, пробуем через localStorage
+                    saveToLocalStorage(name, data);
+                    return false;
+                }
+                console.log('✅ Данные сохранены в Supabase');
+                return true;
+            } catch (e) {
+                console.error('Ошибка:', e);
+                saveToLocalStorage(name, data);
+                return false;
+            }
+        }
+
+        // Резервное сохранение в localStorage
+        function saveToLocalStorage(name, data) {
+            const players = JSON.parse(localStorage.getItem('quiz_players') || '{}');
+            players[name] = data;
+            localStorage.setItem('quiz_players', JSON.stringify(players));
+            console.log('💾 Данные сохранены в localStorage (резерв)');
+        }
+
+        function getFromLocalStorage(name) {
+            const players = JSON.parse(localStorage.getItem('quiz_players') || '{}');
+            return players[name] || null;
+        }
+
+        function getAllFromLocalStorage() {
+            return JSON.parse(localStorage.getItem('quiz_players') || '{}');
+        }
+
+        async function getPlayerFromCloud(name) {
+            try {
+                const { data, error } = await supabase
+                    .from('players')
+                    .select('*')
+                    .eq('name', name)
+                    .maybeSingle();
+                if (error) {
+                    console.error('Ошибка получения:', error);
+                    return getFromLocalStorage(name);
+                }
+                if (!data) return getFromLocalStorage(name);
+                return {
+                    name: data.name,
+                    isActive: data.is_active,
+                    completed: data.completed,
+                    timeout: data.timeout,
+                    startedAt: data.started_at,
+                    endedAt: data.ended_at,
+                    currentPhase: data.current_phase,
+                    currentQuestion: data.current_question,
+                    currentBranch: data.current_branch,
+                    testScores: JSON.parse(data.test_scores || '[]'),
+                    mainAnswers: JSON.parse(data.main_answers || '[]'),
+                    branchHistory: JSON.parse(data.branch_history || '[]'),
+                    totalQuestions: data.total_questions || 15,
+                    greenCount: data.green_count || 0,
+                    yellowCount: data.yellow_count || 0,
+                    redCount: data.red_count || 0,
+                    timeoutCount: data.timeout_count || 0,
+                    secretAnswered: data.secret_answered || false,
+                    secretAnswer: data.secret_answer || ''
+                };
+            } catch (e) {
+                console.error('Ошибка:', e);
+                return getFromLocalStorage(name);
+            }
+        }
+
+        async function getAllPlayers() {
+            try {
+                const { data, error } = await supabase
+                    .from('players')
+                    .select('*')
+                    .order('ended_at', { ascending: false });
+                if (error) {
+                    console.error('Ошибка получения всех:', error);
+                    return getAllFromLocalStorage();
+                }
+                const result = {};
+                data.forEach(row => {
+                    result[row.name] = {
+                        name: row.name,
+                        isActive: row.is_active,
+                        completed: row.completed,
+                        timeout: row.timeout,
+                        startedAt: row.started_at,
+                        endedAt: row.ended_at,
+                        currentPhase: row.current_phase,
+                        currentQuestion: row.current_question,
+                        currentBranch: row.current_branch,
+                        testScores: JSON.parse(row.test_scores || '[]'),
+                        mainAnswers: JSON.parse(row.main_answers || '[]'),
+                        branchHistory: JSON.parse(row.branch_history || '[]'),
+                        totalQuestions: row.total_questions || 15,
+                        greenCount: row.green_count || 0,
+                        yellowCount: row.yellow_count || 0,
+                        redCount: row.red_count || 0,
+                        timeoutCount: row.timeout_count || 0,
+                        secretAnswered: row.secret_answered || false,
+                        secretAnswer: row.secret_answer || ''
+                    };
+                });
+                return result;
+            } catch (e) {
+                console.error('Ошибка:', e);
+                return getAllFromLocalStorage();
+            }
+        }
+
+        async function deletePlayerFromCloud(name) {
+            try {
+                const { error } = await supabase.from('players').delete().eq('name', name);
+                if (error) console.error('Ошибка удаления:', error);
+                // Удаляем и из localStorage
+                const players = JSON.parse(localStorage.getItem('quiz_players') || '{}');
+                delete players[name];
+                localStorage.setItem('quiz_players', JSON.stringify(players));
+                return !error;
+            } catch (e) {
+                console.error('Ошибка:', e);
+                return false;
+            }
+        }
+
+        // ============================================================
+        // 1. ДИСКЛЕЙМЕР
+        // ============================================================
         function openDisclaimer() {
             document.getElementById('disclaimerOverlay').classList.add('active');
             document.getElementById('disclaimerCheck').checked = false;
@@ -1106,11 +1283,12 @@
         function acceptDisclaimer() {
             if (!document.getElementById('disclaimerCheck').checked) return;
             closeDisclaimer();
-            // Запускаем игру через 300мс
             setTimeout(startQuiz, 300);
         }
 
-        // ---------- АДМИН ПАРОЛЬ ----------
+        // ============================================================
+        // 2. АДМИН ПАРОЛЬ
+        // ============================================================
         const ADMIN_PASSWORD = 'Win44Vad';
 
         function openAdminPassword() {
@@ -1139,8 +1317,9 @@
             if (e.key === 'Enter') checkAdminPassword();
         });
 
-        // ---------- ХРАНИЛИЩЕ ----------
-        const STORAGE_KEY = 'quiz_players';
+        // ============================================================
+        // 3. ХРАНИЛИЩЕ
+        // ============================================================
         const TIME_LIMIT = 25;
         let playerName = '';
         let currentQuestionIndex = 0;
@@ -1151,49 +1330,6 @@
         let secretUnlocked = false;
         let secretAnswered = false;
 
-        function getPlayers() {
-            try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { return {}; }
-        }
-
-        function savePlayers(p) { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); }
-
-        function getPlayer(name) {
-            const players = getPlayers();
-            return players[name] || null;
-        }
-
-        function savePlayer(name, data) {
-            const players = getPlayers();
-            players[name] = data;
-            savePlayers(players);
-        }
-
-        function deletePlayer(name) {
-            if (!confirm(`Удалить игрока "${name}"?`)) return;
-            const players = getPlayers();
-            delete players[name];
-            savePlayers(players);
-            renderAdmin();
-        }
-
-        function clearAllData() {
-            if (!confirm('🗑️ Удалить ВСЕ данные?')) return;
-            localStorage.removeItem(STORAGE_KEY);
-            renderAdmin();
-        }
-
-        function exportData() {
-            const data = getPlayers();
-            if (Object.keys(data).length === 0) { alert('Нет данных'); return; }
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `quiz_data_${new Date().toISOString().slice(0, 10)}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(id).classList.add('active');
@@ -1201,7 +1337,9 @@
             if (id === 'admin-screen') renderAdmin();
         }
 
-        // ---------- ВОПРОСЫ ----------
+        // ============================================================
+        // 4. ВОПРОСЫ
+        // ============================================================
         const testQuestions = [
             { id: 1, text: "Какой мой любимый жанр фильмов/сериалов?", options: [{ text: "Драма / психологическое кино", score: 1 }, { text: "Комедия / лёгкое кино", score: 2 }, { text: "Фантастика / фэнтези", score: 3 }, { text: "Боевики / триллеры", score: 4 }] },
             { id: 2, text: "Что для меня важнее всего в жизни?", options: [{ text: "Самореализация и развитие", score: 2 }, { text: "Отношения и близкие люди", score: 4 }, { text: "Свобода и независимость", score: 1 }, { text: "Стабильность и комфорт", score: 3 }] },
@@ -1277,9 +1415,11 @@
             type: "text"
         };
 
-        // ---------- СТАРТ ----------
-        function startQuiz() {
-            console.log('startQuiz вызвана!');
+        // ============================================================
+        // 5. СТАРТ
+        // ============================================================
+        async function startQuiz() {
+            console.log('🚀 startQuiz вызвана!');
 
             const nameInput = document.getElementById('player-name');
             const name = nameInput.value.trim();
@@ -1305,7 +1445,7 @@
             errorEl.textContent = '';
             nameInput.style.borderColor = '';
 
-            const existing = getPlayer(name);
+            const existing = await getPlayerFromCloud(name);
             if (existing && (existing.completed || existing.timeout)) {
                 errorEl.textContent = '⛔ Вы уже проходили эту викторину!';
                 nameInput.style.borderColor = '#ff5c6c';
@@ -1339,13 +1479,15 @@
                 secretAnswered: false,
                 secretAnswer: ''
             };
-            savePlayer(name, game);
+            await savePlayerToCloud(name, game);
 
             showScreen('quiz-screen');
             showQuestion();
         }
 
-        // ---------- ПОКАЗ ВОПРОСА ----------
+        // ============================================================
+        // 6. ПОКАЗ ВОПРОСА
+        // ============================================================
         function getCurrentQuestion(game) {
             if (game.currentPhase === 'test') {
                 const idx = game.currentQuestion;
@@ -1361,8 +1503,8 @@
             }
         }
 
-        function showQuestion() {
-            const game = getPlayer(playerName);
+        async function showQuestion() {
+            const game = await getPlayerFromCloud(playerName);
             if (!game || !game.isActive) {
                 showScreen('start-screen');
                 return;
@@ -1418,13 +1560,15 @@
             el.classList.toggle('danger', timer <= 5);
         }
 
-        // ---------- ОБРАБОТКА ОТВЕТА ----------
-        function selectAnswer(index) {
+        // ============================================================
+        // 7. ОБРАБОТКА ОТВЕТА
+        // ============================================================
+        async function selectAnswer(index) {
             if (isAnswering) return;
             isAnswering = true;
             clearInterval(timerInterval);
 
-            const game = getPlayer(playerName);
+            const game = await getPlayerFromCloud(playerName);
             if (!game || !game.isActive) return;
             const question = getCurrentQuestion(game);
             if (!question) return;
@@ -1440,10 +1584,10 @@
                 isAnswering = false; }, 400);
         }
 
-        function handleTimeout() {
+        async function handleTimeout() {
             if (isAnswering) return;
             isAnswering = true;
-            const game = getPlayer(playerName);
+            const game = await getPlayerFromCloud(playerName);
             if (!game || !game.isActive) return;
 
             document.getElementById('timeoutOverlay').style.display = 'block';
@@ -1465,11 +1609,11 @@
                 game.branchHistory.push('timeout');
                 game.timeoutCount++;
             }
-            savePlayer(playerName, game);
+            await savePlayerToCloud(playerName, game);
         }
 
-        function processAnswer(score) {
-            const game = getPlayer(playerName);
+        async function processAnswer(score) {
+            const game = await getPlayerFromCloud(playerName);
             if (!game || !game.isActive) return;
             const question = getCurrentQuestion(game);
             if (!question) return;
@@ -1484,7 +1628,7 @@
                     game.currentPhase = 'main';
                     game.currentQuestion = testQuestions.length;
                     game.branchHistory.push(startBranch);
-                    savePlayer(playerName, game);
+                    await savePlayerToCloud(playerName, game);
                     showQuestion();
                     return;
                 }
@@ -1512,11 +1656,13 @@
                 return;
             }
 
-            savePlayer(playerName, game);
+            await savePlayerToCloud(playerName, game);
             showQuestion();
         }
 
-        // ---------- ГРАФИК ----------
+        // ============================================================
+        // 8. ГРАФИК
+        // ============================================================
         function renderBranchGraph(branchHistory) {
             const branchRows = ['hard', 'medium', 'easy'];
             const totalQuestions = 10;
@@ -1600,14 +1746,16 @@
             }
         }
 
-        // ---------- ФИНАЛ ----------
-        function finishQuiz() {
-            const game = getPlayer(playerName);
+        // ============================================================
+        // 9. ФИНАЛ
+        // ============================================================
+        async function finishQuiz() {
+            const game = await getPlayerFromCloud(playerName);
             if (!game) return;
             game.isActive = false;
             game.completed = true;
             game.endedAt = new Date().toISOString();
-            savePlayer(playerName, game);
+            await savePlayerToCloud(playerName, game);
 
             const total = game.totalQuestions;
             const green = game.greenCount;
@@ -1657,8 +1805,8 @@
             document.getElementById('result-message').textContent =
                 `Ты ответил правильно на ${green} из ${total} вопросов (${greenPercent}%)`;
 
-            const players = getPlayers();
-            const completed = Object.values(players).filter(p => p.completed && p.name !== playerName);
+            const allPlayers = await getAllPlayers();
+            const completed = Object.values(allPlayers).filter(p => p.completed && p.name !== playerName);
             const better = completed.filter(p => (p.greenCount || 0) / (p.totalQuestions || 15) * 100 < greenPercent).length;
             const totalPlayers = completed.length + 1;
             const betterPercent = totalPlayers > 0 ? Math.round((better / totalPlayers) * 100) : 0;
@@ -1707,11 +1855,11 @@
                 <span class="message">Иногда прошлое живёт в нас дольше, чем мы готовы признать.</span>
             `;
 
-            const game = getPlayer(playerName);
+            const game = getPlayerFromCloud(playerName);
             if (game) {
                 game.secretAnswered = true;
                 game.secretAnswer = answer;
-                savePlayer(playerName, game);
+                savePlayerToCloud(playerName, game);
             }
 
             setTimeout(launchConfetti, 500);
@@ -1743,9 +1891,11 @@
             }
         }
 
-        // ---------- АДМИН ----------
-        function renderAdmin() {
-            const players = getPlayers();
+        // ============================================================
+        // 10. АДМИН
+        // ============================================================
+        async function renderAdmin() {
+            const players = await getAllPlayers();
             const tbody = document.getElementById('adminBody');
             const names = Object.keys(players);
             if (names.length === 0) {
@@ -1783,8 +1933,8 @@
             }).join('');
         }
 
-        function viewAnswers(name) {
-            const p = getPlayer(name);
+        async function viewAnswers(name) {
+            const p = await getPlayerFromCloud(name);
             if (!p) return;
             document.getElementById('modalTitle').textContent = `📋 Ответы: ${name}`;
             const body = document.getElementById('modalBody');
@@ -1850,11 +2000,56 @@
             if (e.target === this) closeModal();
         });
 
-        // ---------- ЗАПУСК ----------
+        // ============================================================
+        // 11. УДАЛЕНИЕ (ОБЛАКО)
+        // ============================================================
+        async function deletePlayer(name) {
+            if (!confirm(`Удалить игрока "${name}"?`)) return;
+            await deletePlayerFromCloud(name);
+            renderAdmin();
+        }
+
+        async function clearAllData() {
+            if (!confirm('🗑️ Удалить ВСЕ данные?')) return;
+            try {
+                const { error } = await supabase.from('players').delete().neq('name', '');
+                if (error) console.error('Ошибка очистки:', error);
+            } catch (e) {
+                console.error('Ошибка:', e);
+            }
+            localStorage.removeItem('quiz_players');
+            renderAdmin();
+        }
+
+        async function exportData() {
+            const players = await getAllPlayers();
+            if (Object.keys(players).length === 0) { alert('Нет данных'); return; }
+            const b = new Blob([JSON.stringify(players, null, 2)], { type: 'application/json' });
+            const u = URL.createObjectURL(b);
+            const a = document.createElement('a');
+            a.href = u;
+            a.download = `quiz_data_${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(u);
+        }
+
+        // ============================================================
+        // 12. ЗАПУСК
+        // ============================================================
         document.getElementById('player-name').addEventListener('keydown', function(e) {
             if (e.key === 'Enter') openDisclaimer();
         });
         showScreen('start-screen');
+
+        // Подписка на изменения в реальном времени
+        supabase
+            .channel('players_changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, () => {
+                if (document.getElementById('admin-screen').classList.contains('active')) {
+                    renderAdmin();
+                }
+            })
+            .subscribe();
     </script>
 </body>
 </html>
