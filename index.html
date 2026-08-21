@@ -1112,45 +1112,12 @@
         const SUPABASE_ANON_KEY =
             'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZncnBjamRybmJkaWZuaGp3ZHVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczMzM2ODIsImV4cCI6MjEwMjkwOTY4Mn0.p7VcUc79EI--Th596UTTxht55CH00lLIC_ZYxsXGlNg';
 
-        const supabase = window.supabase?.createClient
-            ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-            : null;
-        let lastCloudError = false;
-
-        function setCloudError(message) {
-            lastCloudError = true;
-            console.error(message);
-        }
-
-        function safeJsonParse(value, fallback = []) {
-            if (value === null || value === undefined || value === '') return fallback;
-            if (Array.isArray(value) || typeof value === 'object') return value;
-            try {
-                return JSON.parse(value);
-            } catch (e) {
-                console.error('Ошибка разбора JSON из облака:', e, value);
-                return fallback;
-            }
-        }
-
-        function escapeHtml(value) {
-            return String(value ?? '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/\"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-        }
+        const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // ============================================================
         // РАБОТА С БАЗОЙ ДАННЫХ
         // ============================================================
         async function savePlayerToCloud(name, data) {
-            lastCloudError = false;
-            if (!supabase) {
-                setCloudError('Supabase не загрузился. Проверьте подключение к интернету.');
-                return false;
-            }
             try {
                 const { error } = await supabase
                     .from('players')
@@ -1176,33 +1143,22 @@
                         secret_answer: data.secretAnswer || '',
                         updated_at: new Date().toISOString()
                     }, { onConflict: 'name' });
-                if (error) {
-                    setCloudError('Ошибка сохранения игрока: ' + error.message);
-                    return false;
-                }
-                return true;
+                if (error) console.error('Ошибка сохранения:', error);
+                return !error;
             } catch (e) {
-                setCloudError('Ошибка сохранения игрока: ' + e.message);
+                console.error('Ошибка:', e);
                 return false;
             }
         }
 
         async function getPlayerFromCloud(name) {
-            lastCloudError = false;
-            if (!supabase) {
-                setCloudError('Supabase не загрузился. Проверьте подключение к интернету.');
-                return null;
-            }
             try {
                 const { data, error } = await supabase
                     .from('players')
                     .select('*')
                     .eq('name', name)
                     .maybeSingle();
-                if (error) {
-                    setCloudError('Ошибка получения игрока: ' + error.message);
-                    return null;
-                }
+                if (error) { console.error('Ошибка получения:', error); return null; }
                 if (!data) return null;
                 return {
                     name: data.name,
@@ -1214,9 +1170,9 @@
                     currentPhase: data.current_phase,
                     currentQuestion: data.current_question,
                     currentBranch: data.current_branch,
-                    testScores: safeJsonParse(data.test_scores, []),
-                    mainAnswers: safeJsonParse(data.main_answers, []),
-                    branchHistory: safeJsonParse(data.branch_history, []),
+                    testScores: JSON.parse(data.test_scores || '[]'),
+                    mainAnswers: JSON.parse(data.main_answers || '[]'),
+                    branchHistory: JSON.parse(data.branch_history || '[]'),
                     totalQuestions: data.total_questions || 15,
                     greenCount: data.green_count || 0,
                     yellowCount: data.yellow_count || 0,
@@ -1226,26 +1182,18 @@
                     secretAnswer: data.secret_answer || ''
                 };
             } catch (e) {
-                setCloudError('Ошибка получения игрока: ' + e.message);
+                console.error('Ошибка:', e);
                 return null;
             }
         }
 
         async function getAllPlayers() {
-            lastCloudError = false;
-            if (!supabase) {
-                setCloudError('Supabase не загрузился. Проверьте подключение к интернету.');
-                return {};
-            }
             try {
                 const { data, error } = await supabase
                     .from('players')
                     .select('*')
                     .order('ended_at', { ascending: false });
-                if (error) {
-                    setCloudError('Ошибка получения всех игроков: ' + error.message);
-                    return {};
-                }
+                if (error) { console.error('Ошибка получения всех:', error); return {}; }
                 const result = {};
                 data.forEach(row => {
                     result[row.name] = {
@@ -1258,9 +1206,9 @@
                         currentPhase: row.current_phase,
                         currentQuestion: row.current_question,
                         currentBranch: row.current_branch,
-                        testScores: safeJsonParse(row.test_scores, []),
-                        mainAnswers: safeJsonParse(row.main_answers, []),
-                        branchHistory: safeJsonParse(row.branch_history, []),
+                        testScores: JSON.parse(row.test_scores || '[]'),
+                        mainAnswers: JSON.parse(row.main_answers || '[]'),
+                        branchHistory: JSON.parse(row.branch_history || '[]'),
                         totalQuestions: row.total_questions || 15,
                         greenCount: row.green_count || 0,
                         yellowCount: row.yellow_count || 0,
@@ -1272,16 +1220,12 @@
                 });
                 return result;
             } catch (e) {
-                setCloudError('Ошибка получения всех игроков: ' + e.message);
+                console.error('Ошибка:', e);
                 return {};
             }
         }
 
         async function deletePlayerFromCloud(name) {
-            if (!supabase) {
-                setCloudError('Supabase не загрузился.');
-                return false;
-            }
             try {
                 const { error } = await supabase
                     .from('players')
@@ -1480,23 +1424,9 @@
 
             // Проверяем в облаке
             const existing = await getPlayerFromCloud(name);
-            if (lastCloudError) {
-                errorEl.textContent = '❌ Не удалось подключиться к облаку. Проверьте интернет и попробуйте ещё раз.';
-                nameInput.style.borderColor = '#ff5c6c';
-                return;
-            }
             if (existing && (existing.completed || existing.timeout)) {
                 errorEl.textContent = '⛔ Вы уже проходили эту викторину!';
                 nameInput.style.borderColor = '#ff5c6c';
-                return;
-            }
-            if (existing && existing.isActive) {
-                playerName = name;
-                currentQuestionIndex = existing.currentQuestion || 0;
-                secretUnlocked = false;
-                secretAnswered = existing.secretAnswered || false;
-                showScreen('quiz-screen');
-                await showQuestion();
                 return;
             }
 
@@ -1527,15 +1457,10 @@
                 secretAnswered: false,
                 secretAnswer: ''
             };
-            const saved = await savePlayerToCloud(name, game);
-            if (!saved) {
-                errorEl.textContent = '❌ Не удалось сохранить игру в облако. Попробуйте ещё раз.';
-                nameInput.style.borderColor = '#ff5c6c';
-                return;
-            }
+            await savePlayerToCloud(name, game);
 
             showScreen('quiz-screen');
-            await showQuestion();
+            showQuestion();
         }
 
         // ============================================================
@@ -1558,10 +1483,6 @@
 
         async function showQuestion() {
             const game = await getPlayerFromCloud(playerName);
-            if (lastCloudError) {
-                alert('❌ Не удалось получить данные игры из облака. Проверьте интернет и обновите страницу.');
-                return;
-            }
             if (!game || !game.isActive) {
                 showScreen('start-screen');
                 return;
@@ -1569,7 +1490,7 @@
 
             const question = getCurrentQuestion(game);
             if (!question) {
-                await finishQuiz(game);
+                finishQuiz();
                 return;
             }
 
@@ -1588,11 +1509,7 @@
             question.options.forEach((opt, idx) => {
                 const btn = document.createElement('button');
                 btn.className = 'answer';
-                const letter = document.createElement('span');
-                letter.className = 'letter';
-                letter.textContent = `${letters[idx]}.`;
-                btn.appendChild(letter);
-                btn.appendChild(document.createTextNode(` ${opt.text}`));
+                btn.innerHTML = `<span class="letter">${letters[idx]}.</span> ${opt.text}`;
                 btn.onclick = () => selectAnswer(idx);
                 container.appendChild(btn);
             });
@@ -1629,28 +1546,20 @@
             isAnswering = true;
             clearInterval(timerInterval);
 
-            try {
-                const game = await getPlayerFromCloud(playerName);
-                if (lastCloudError) {
-                    alert('❌ Не удалось сохранить/получить игру. Проверьте интернет и попробуйте снова.');
-                    return;
-                }
-                if (!game || !game.isActive) return;
-                const question = getCurrentQuestion(game);
-                if (!question || !question.options[index]) return;
+            const game = await getPlayerFromCloud(playerName);
+            if (!game || !game.isActive) return;
+            const question = getCurrentQuestion(game);
+            if (!question) return;
 
-                const score = question.options[index].score;
-                const btns = document.querySelectorAll('.answer');
-                btns.forEach((btn, i) => {
-                    btn.disabled = true;
-                    if (i === index) btn.classList.add('selected');
-                });
+            const score = question.options[index].score;
+            const btns = document.querySelectorAll('.answer');
+            btns.forEach((btn, i) => {
+                btn.disabled = true;
+                if (i === index) btn.classList.add('selected');
+            });
 
-                await new Promise(resolve => setTimeout(resolve, 400));
-                await processAnswer(score);
-            } finally {
-                isAnswering = false;
-            }
+            setTimeout(() => { processAnswer(score);
+                isAnswering = false; }, 400);
         }
 
         async function handleTimeout() {
@@ -1720,20 +1629,13 @@
             }
 
             game.currentQuestion++;
-
-            // Сначала сохраняем изменённое состояние, включая последний ответ.
-            const saved = await savePlayerToCloud(playerName, game);
-            if (!saved) {
-                alert('❌ Не удалось сохранить ответ в облако. Попробуйте ещё раз.');
-                return;
-            }
-
             if (game.currentQuestion >= game.totalQuestions) {
-                await finishQuiz(game);
+                finishQuiz();
                 return;
             }
 
-            await showQuestion();
+            await savePlayerToCloud(playerName, game);
+            showQuestion();
         }
 
         // ============================================================
@@ -1826,11 +1728,9 @@
         // ============================================================
         // 9. ФИНАЛ
         // ============================================================
-        async function finishQuiz(game = null) {
-            if (!game) {
-                game = await getPlayerFromCloud(playerName);
-                if (lastCloudError || !game) return;
-            }
+        async function finishQuiz() {
+            const game = await getPlayerFromCloud(playerName);
+            if (!game) return;
             game.isActive = false;
             game.completed = true;
             game.endedAt = new Date().toISOString();
@@ -1935,7 +1835,7 @@
             resultEl.className = 'secret-result show correct';
             resultEl.innerHTML = `
                 ✅ Спасибо за честный ответ.<br>
-                <span class="answer-text">Твой ответ: "${escapeHtml(answer)}"</span>
+                <span class="answer-text">Твой ответ: "${answer}"</span>
                 <span class="message">Иногда прошлое живёт в нас дольше, чем мы готовы признать.</span>
             `;
 
@@ -2129,7 +2029,7 @@
         showScreen('start-screen');
 
         // Подписка на изменения в реальном времени (для админки)
-        if (supabase) supabase
+        supabase
             .channel('players_changes')
             .on(
                 'postgres_changes', {
