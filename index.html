@@ -1,0 +1,1729 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>На сколько хорошо ты меня знаешь?</title>
+
+    <!-- ====== ПОДКЛЮЧАЕМ SUPABASE ====== -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+    </script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #0f1117;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        button {
+            font: inherit;
+            cursor: pointer;
+        }
+        .app {
+            width: min(760px, 94%);
+            margin: 0 auto;
+            padding: 25px 0 50px;
+        }
+        .screen {
+            display: none;
+        }
+        .screen.active {
+            display: block;
+        }
+        .card {
+            background: #181b24;
+            border-radius: 24px;
+            padding: 28px;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, .35);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        h1 {
+            margin-top: 0;
+            font-size: 42px;
+            background: linear-gradient(135deg, #f7971e, #ffd200);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle {
+            color: #aeb4c2;
+            line-height: 1.7;
+            font-size: 16px;
+        }
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 16px 18px;
+            margin: 15px 0;
+            border: 1px solid #343947;
+            border-radius: 14px;
+            background: #101219;
+            color: white;
+            outline: none;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        input:focus {
+            border-color: #6c5ce7;
+        }
+        .primary {
+            width: 100%;
+            padding: 16px 20px;
+            border: 0;
+            border-radius: 14px;
+            background: #6c5ce7;
+            color: white;
+            font-weight: 700;
+            font-size: 17px;
+            cursor: pointer;
+            transition: all .25s;
+        }
+        .primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(108, 92, 231, 0.35);
+        }
+        .primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        .secondary {
+            width: 100%;
+            padding: 16px 20px;
+            border: 1px solid #343947;
+            border-radius: 14px;
+            background: transparent;
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all .25s;
+            margin-top: 10px;
+        }
+        .secondary:hover {
+            background: #20232d;
+            border-color: #6c5ce7;
+        }
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .question-number {
+            color: #aeb4c2;
+            font-size: 15px;
+        }
+        .timer {
+            min-width: 65px;
+            text-align: center;
+            padding: 9px 16px;
+            border-radius: 12px;
+            background: #252936;
+            font-weight: 700;
+            font-size: 20px;
+            color: #6c5ce7;
+        }
+        .timer.danger {
+            background: #7c2631;
+            color: #ff6b7a;
+            animation: pulse .6s infinite alternate;
+        }
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.06); }
+        }
+        .progress {
+            height: 6px;
+            border-radius: 20px;
+            background: #292d38;
+            overflow: hidden;
+            margin-bottom: 22px;
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0;
+            background: linear-gradient(90deg, #6c5ce7, #a29bfe);
+            transition: width .4s ease;
+        }
+        .question {
+            font-size: 26px;
+            line-height: 1.4;
+            margin: 20px 0 24px;
+            color: #fff;
+            font-weight: 600;
+            min-height: 60px;
+        }
+        .answers {
+            display: grid;
+            gap: 10px;
+        }
+        .answer {
+            width: 100%;
+            padding: 16px 20px;
+            text-align: left;
+            border: 1px solid #343947;
+            border-radius: 14px;
+            background: #20232d;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all .2s;
+        }
+        .answer:hover:not(:disabled) {
+            border-color: #6c5ce7;
+            transform: translateX(4px);
+        }
+        .answer .letter {
+            color: #6c5ce7;
+            font-weight: 700;
+            margin-right: 12px;
+        }
+        .answer:disabled {
+            cursor: default;
+            opacity: 0.7;
+        }
+        .answer.selected {
+            border-color: #6c5ce7;
+            background: rgba(108, 92, 231, 0.15);
+        }
+
+        .disclaimer-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.88);
+            backdrop-filter: blur(12px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .disclaimer-overlay.active {
+            display: flex;
+        }
+        .disclaimer-box {
+            background: #181b24;
+            border-radius: 24px;
+            padding: 35px;
+            max-width: 520px;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .disclaimer-box .icon {
+            font-size: 48px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .disclaimer-box h2 {
+            text-align: center;
+            color: #fff;
+            font-size: 22px;
+            margin-bottom: 6px;
+        }
+        .disclaimer-box .sub {
+            text-align: center;
+            color: #8899bb;
+            font-size: 14px;
+            margin-bottom: 18px;
+        }
+        .disclaimer-box .text {
+            background: rgba(26, 36, 64, 0.4);
+            padding: 16px 20px;
+            border-radius: 14px;
+            font-size: 14px;
+            line-height: 1.7;
+            color: #c0d0e0;
+            margin-bottom: 16px;
+            border-left: 3px solid #6c5ce7;
+        }
+        .disclaimer-box .text .credit {
+            color: #8899bb;
+            font-size: 12px;
+            font-style: italic;
+            margin-top: 8px;
+            display: block;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 8px;
+        }
+        .disclaimer-box .text .date-info {
+            color: #667799;
+            font-size: 12px;
+            margin-top: 6px;
+            display: block;
+        }
+        .checkbox-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin: 14px 0 18px;
+        }
+        .checkbox-row input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            min-width: 20px;
+            margin-top: 2px;
+            accent-color: #6c5ce7;
+            cursor: pointer;
+        }
+        .checkbox-row label {
+            color: #c0d0e0;
+            font-size: 14px;
+            line-height: 1.5;
+            cursor: pointer;
+        }
+        .checkbox-row label .em {
+            color: #6c5ce7;
+            font-weight: 600;
+        }
+        .disclaimer-actions {
+            display: flex;
+            gap: 12px;
+        }
+        .disclaimer-actions .btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .25s;
+        }
+        .btn-primary {
+            background: #6c5ce7;
+            color: white;
+        }
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(108, 92, 231, 0.3);
+        }
+        .btn-primary:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        .btn-secondary {
+            background: #20232d;
+            color: white;
+            border: 1px solid #343947;
+        }
+        .btn-secondary:hover {
+            background: #2a2e3a;
+        }
+
+        .result-card {
+            text-align: center;
+        }
+        .result-level {
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+        .result-sub {
+            color: #aeb4c2;
+            font-size: 16px;
+            margin-bottom: 6px;
+        }
+        .percentage {
+            font-size: 76px;
+            font-weight: 900;
+            line-height: 1;
+            margin: 10px 0;
+            color: #6c5ce7;
+        }
+        .result-compare {
+            color: #8899bb;
+            font-size: 15px;
+            margin-bottom: 20px;
+        }
+        .result-compare strong {
+            color: #f7971e;
+        }
+        .result-message {
+            color: #b9becb;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            font-size: 16px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+            margin: 20px 0;
+        }
+        .stat {
+            background: #222631;
+            border-radius: 15px;
+            padding: 16px;
+        }
+        .stat strong {
+            display: block;
+            font-size: 28px;
+        }
+        .stat .label {
+            color: #9fa5b3;
+            font-size: 13px;
+        }
+        .stat.green strong { color: #39d98a; }
+        .stat.yellow strong { color: #f1c40f; }
+        .stat.red strong { color: #ff5c6c; }
+
+        .final-divider {
+            width: 60%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #6c5ce7, transparent);
+            margin: 16px auto;
+        }
+        .final-divider-thick {
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #6c5ce7, transparent);
+            margin: 20px auto;
+        }
+        .final-verdict {
+            padding: 16px 24px;
+            border-radius: 16px;
+            margin: 12px 0 8px;
+            font-size: 20px;
+            font-weight: 700;
+            display: inline-block;
+        }
+        .final-verdict.good {
+            background: rgba(57, 217, 138, 0.15);
+            border: 2px solid #39d98a;
+            color: #39d98a;
+        }
+        .final-verdict.mid {
+            background: rgba(241, 196, 15, 0.15);
+            border: 2px solid #f1c40f;
+            color: #f1c40f;
+        }
+        .final-verdict.bad {
+            background: rgba(255, 92, 108, 0.15);
+            border: 2px solid #ff5c6c;
+            color: #ff5c6c;
+        }
+        .final-details {
+            color: #9fa5b3;
+            font-size: 14px;
+            line-height: 1.8;
+            margin-top: 8px;
+        }
+        .final-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .share-btn {
+            background: #1a8cd8;
+            color: white;
+            border: none;
+            padding: 16px 20px;
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all .25s;
+            width: 100%;
+            margin-top: 8px;
+        }
+        .share-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(26, 140, 216, 0.35);
+        }
+
+        .secret-area {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #1a1040, #181b24);
+            border: 2px solid #6c5ce7;
+        }
+        .secret-area.show {
+            display: block;
+        }
+        .secret-area .secret-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: #6c5ce7;
+            margin-bottom: 4px;
+        }
+        .secret-area .secret-sub {
+            color: #8899bb;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        .secret-area .secret-input-wrap {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .secret-area .secret-input-wrap input {
+            flex: 1;
+            min-width: 200px;
+            padding: 14px 18px;
+            border-radius: 14px;
+            border: 1px solid #343947;
+            background: #101219;
+            color: white;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+            margin: 0;
+        }
+        .secret-area .secret-input-wrap input:focus {
+            border-color: #6c5ce7;
+        }
+        .secret-area .secret-input-wrap input:disabled {
+            opacity: 0.5;
+        }
+        .secret-area .secret-input-wrap .primary {
+            flex: 0 0 auto;
+            width: auto;
+            padding: 14px 28px;
+            margin: 0;
+        }
+        .secret-area .secret-result {
+            margin-top: 16px;
+            padding: 16px;
+            border-radius: 12px;
+            background: #20232d;
+            display: none;
+            text-align: left;
+            line-height: 1.6;
+        }
+        .secret-area .secret-result.show {
+            display: block;
+        }
+        .secret-area .secret-result.correct {
+            border-left: 4px solid #39d98a;
+        }
+        .secret-area .secret-result .answer-text {
+            color: #8899bb;
+            font-size: 14px;
+            display: block;
+            margin-top: 4px;
+        }
+        .secret-area .secret-result .message {
+            color: #6c5ce7;
+            font-size: 14px;
+            display: block;
+            margin-top: 8px;
+            font-style: italic;
+        }
+
+        .branch-graph {
+            background: rgba(26, 36, 64, 0.3);
+            border-radius: 14px;
+            padding: 12px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            margin: 8px 0;
+        }
+        .branch-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 2px 0;
+        }
+        .branch-dots {
+            display: flex;
+            flex: 1;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            max-width: 100%;
+            justify-content: center;
+        }
+        .graph-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            font-weight: 700;
+            color: #fff;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+            min-width: 20px;
+            min-height: 20px;
+        }
+        .graph-dot .qnum {
+            font-size: 8px;
+            font-weight: 700;
+            color: #fff;
+        }
+        .graph-dot.hard {
+            background: #e74c3c;
+            border-color: #e74c3c;
+        }
+        .graph-dot.hard.active {
+            transform: scale(1.2);
+            box-shadow: 0 0 20px rgba(231, 76, 60, 0.5);
+        }
+        .graph-dot.hard.passed {
+            opacity: 0.6;
+        }
+        .graph-dot.medium {
+            background: #f1c40f;
+            border-color: #f1c40f;
+            color: #0a0e1a;
+        }
+        .graph-dot.medium.active {
+            transform: scale(1.2);
+            box-shadow: 0 0 20px rgba(241, 196, 15, 0.5);
+        }
+        .graph-dot.medium.passed {
+            opacity: 0.6;
+        }
+        .graph-dot.easy {
+            background: #2ecc71;
+            border-color: #2ecc71;
+        }
+        .graph-dot.easy.active {
+            transform: scale(1.2);
+            box-shadow: 0 0 20px rgba(46, 204, 113, 0.5);
+        }
+        .graph-dot.easy.passed {
+            opacity: 0.6;
+        }
+        .graph-dot.timeout {
+            background: #8e44ad;
+            border-color: #8e44ad;
+        }
+        .graph-dot.timeout.active {
+            transform: scale(1.2);
+            box-shadow: 0 0 20px rgba(142, 68, 153, 0.5);
+        }
+        .graph-dot.timeout.passed {
+            opacity: 0.6;
+        }
+        .graph-dot.empty {
+            background: #2a2e3a;
+            border-color: #2a2e3a;
+            opacity: 0.3;
+        }
+        .graph-line {
+            width: 12px;
+            height: 3px;
+            border-radius: 2px;
+            transition: all 0.5s;
+        }
+        .graph-line.hard { background: #e74c3c; }
+        .graph-line.medium { background: #f1c40f; }
+        .graph-line.easy { background: #2ecc71; }
+        .graph-line.timeout { background: #8e44ad; }
+        .graph-line.empty { background: #2a2e3a; opacity: 0.2; }
+
+        .admin-input {
+            width: 100%;
+            padding: 16px 18px;
+            margin: 10px 0;
+            border: 1px solid #343947;
+            border-radius: 14px;
+            background: #101219;
+            color: white;
+            outline: none;
+            font-size: 16px;
+        }
+        .admin-input:focus {
+            border-color: #6c5ce7;
+        }
+        .admin-table-wrap {
+            overflow-x: auto;
+            margin-top: 16px;
+        }
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        .admin-table th {
+            background: #20232d;
+            padding: 12px 14px;
+            text-align: left;
+            color: #8899bb;
+            font-weight: 600;
+            border-bottom: 2px solid #2a2e3a;
+        }
+        .admin-table td {
+            padding: 10px 14px;
+            border-bottom: 1px solid #1a1d26;
+        }
+        .admin-table tr:hover td {
+            background: #1a1d26;
+        }
+        .admin-btn {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all .2s;
+            margin: 2px;
+        }
+        .admin-btn-view {
+            background: #6c5ce7;
+            color: white;
+        }
+        .admin-btn-view:hover {
+            background: #5a4bd1;
+        }
+        .admin-btn-del {
+            background: #5b2029;
+            color: #ff5c6c;
+        }
+        .admin-btn-del:hover {
+            background: #7c2631;
+        }
+        .admin-btn-danger {
+            background: #5b2029;
+            color: #ff5c6c;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .2s;
+        }
+        .admin-btn-danger:hover {
+            background: #7c2631;
+        }
+        .admin-btn-success {
+            background: #174d38;
+            color: #39d98a;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .2s;
+        }
+        .admin-btn-success:hover {
+            background: #1d5f45;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-box {
+            background: #181b24;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .modal-box .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .modal-box .header h2 {
+            color: #fff;
+            font-size: 20px;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            color: #8899bb;
+            font-size: 28px;
+            cursor: pointer;
+        }
+        .modal-close:hover {
+            color: #fff;
+        }
+
+        .confetti {
+            position: fixed;
+            width: 8px;
+            height: 14px;
+            top: -20px;
+            animation: fall 3s linear forwards;
+            pointer-events: none;
+            z-index: 9999;
+        }
+        @keyframes fall {
+            to {
+                transform: translateY(110vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        .input-error {
+            color: #ff5c6c;
+            font-size: 14px;
+            min-height: 20px;
+            margin-top: -8px;
+            margin-bottom: 10px;
+        }
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #181b24;
+            border: 1px solid #6c5ce7;
+            padding: 14px 28px;
+            border-radius: 14px;
+            color: white;
+            font-size: 14px;
+            z-index: 9999;
+            display: none;
+            max-width: 90%;
+            text-align: center;
+        }
+        .toast.show {
+            display: block;
+        }
+        .toast.success {
+            border-color: #39d98a;
+        }
+        .toast.error {
+            border-color: #ff5c6c;
+        }
+        .toast.info {
+            border-color: #f7971e;
+        }
+
+        @media (max-width: 640px) {
+            h1 { font-size: 32px; }
+            .card { padding: 20px; }
+            .question { font-size: 21px; }
+            .percentage { font-size: 56px; }
+            .stats { grid-template-columns: 1fr 1fr 1fr; }
+            .disclaimer-box { padding: 24px; }
+            .disclaimer-actions { flex-direction: column; }
+            .final-actions { flex-direction: column; }
+            .admin-table { font-size: 12px; }
+            .admin-table th, .admin-table td { padding: 6px 8px; }
+            .result-level { font-size: 24px; }
+            .graph-dot { width: 16px; height: 16px; min-width: 16px; min-height: 16px; font-size: 6px; }
+            .graph-dot .qnum { font-size: 6px; }
+            .graph-line { width: 8px; }
+            .branch-dots { gap: 4px; }
+        }
+        @media (max-width: 480px) {
+            .stats { grid-template-columns: 1fr; }
+            .graph-dot { width: 14px; height: 14px; min-width: 14px; min-height: 14px; font-size: 5px; }
+            .graph-dot .qnum { font-size: 5px; }
+            .graph-line { width: 6px; }
+            .branch-dots { gap: 3px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ====== TOAST УВЕДОМЛЕНИЯ ====== -->
+    <div class="toast" id="toast"></div>
+
+    <!-- ====== ДИСКЛЕЙМЕР ====== -->
+    <div class="disclaimer-overlay" id="disclaimerOverlay">
+        <div class="disclaimer-box">
+            <div class="icon">⚠️</div>
+            <h2>Внимание!</h2>
+            <p class="sub">Перед началом викторины ознакомьтесь с условиями</p>
+            <div class="text">
+                <span style="color:#8899bb; font-style: italic;">P.s Всё что там есть — основано на реальных событиях.</span><br>
+                <span style="color:#8899bb; font-size:13px;display:block;margin-top:4px;">Не советую повторять.</span>
+                <span class="credit">📝 За основу была взята викторина Алексея (все совпадения случайны).</span>
+                <span class="date-info">🧪 Игра находится на тестировании с 19.08.2026 по н.в.</span>
+                <span class="date-info">📅 Игра доступна с 16.09.2026 по 30.09.2026</span>
+                <div style="margin-top:14px;padding:12px 16px;background:rgba(255,0,0,0.08);border:2px solid #ff0000;border-radius:10px;text-align:center;font-weight:800;font-size:15px;color:#ff0000;text-transform:uppercase;letter-spacing:0.5px;line-height:1.6;">
+                    ⚠️ ВСЕ ЛЕВЫЕ ИМЕНА<br>(ТАКИЕ КАК: Олег1, Ол, Олег&amp;, и т.д.)<br>
+                    <span style="text-decoration: underline;">УДАЛЯЮТСЯ!</span><br>ПРОСТО ИМЯ. СПАСИБО ЗА ПОНИМАНИЕ.
+                </div>
+            </div>
+            <div class="checkbox-row">
+                <input type="checkbox" id="disclaimerCheck">
+                <label for="disclaimerCheck">Я принимаю условия и осознаю, что <span class="em">играю на свой страх и риск</span></label>
+            </div>
+            <div style="text-align:center;margin:8px 0 12px;font-size:20px;font-weight:700;color:#f7971e;">🎮 Удачной игры!</div>
+            <div class="disclaimer-actions">
+                <button class="btn btn-secondary" id="disclaimerCancelBtn">Отмена</button>
+                <button class="btn btn-primary" id="acceptBtn" disabled>Принимаю →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== МОДАЛКА ПАРОЛЯ ====== -->
+    <div class="disclaimer-overlay" id="adminPasswordOverlay">
+        <div class="disclaimer-box">
+            <div class="icon">🔐</div>
+            <h2>Введите пароль</h2>
+            <p class="sub">Для доступа к админ-панели нужен пароль</p>
+            <input type="password" class="admin-input" id="adminPasswordInput" placeholder="Введите пароль">
+            <div class="input-error" id="adminPasswordError"></div>
+            <div class="disclaimer-actions">
+                <button class="btn btn-secondary" id="adminCancelBtn">Отмена</button>
+                <button class="btn btn-primary" id="adminLoginBtn">Войти</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== МОДАЛКА ОТВЕТОВ ====== -->
+    <div class="modal-overlay" id="answersModal">
+        <div class="modal-box">
+            <div class="header">
+                <h2 id="modalTitle">Ответы игрока</h2>
+                <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- ====== ОСНОВНОЙ КОНТЕЙНЕР ====== -->
+    <div class="app">
+
+        <!-- START -->
+        <section id="start-screen" class="screen active">
+            <div class="card">
+                <h1>🎮 На сколько хорошо<br>ты меня знаешь?</h1>
+                <p class="subtitle">
+                    Ответь на 15 вопросов и узнай свой результат.<br>
+                    ⏱️ 25 секунд на каждый вопрос · 🚫 Только одна попытка
+                </p>
+                <input id="player-name" type="text" maxlength="50" placeholder="Введите своё имя">
+                <div class="input-error" id="nameError"></div>
+                <button class="primary" id="startBtn">Начать викторину →</button>
+                <button class="secondary" id="adminBtn">⚙️ Админ-панель</button>
+            </div>
+        </section>
+
+        <!-- QUIZ -->
+        <section id="quiz-screen" class="screen">
+            <div class="card">
+                <div class="topbar">
+                    <div id="question-number" class="question-number">Вопрос 1 / 15</div>
+                    <div id="timer" class="timer">25</div>
+                </div>
+                <div class="progress">
+                    <div id="progress-bar" class="progress-bar"></div>
+                </div>
+                <div id="question" class="question">Загрузка вопроса...</div>
+                <div id="answers" class="answers"></div>
+                <div id="timeoutOverlay" style="display:none;text-align:center;padding:30px 0;">
+                    <div style="font-size:64px;margin-bottom:12px;">⏰</div>
+                    <h2 style="color:#ff5c6c;">Время вышло!</h2>
+                    <p style="color:#8899bb;">Игра завершена. Повторное прохождение невозможно.</p>
+                    <button class="primary" style="margin-top:12px;" onclick="location.reload()">На главную</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- RESULT -->
+        <section id="result-screen" class="screen">
+            <div class="card result-card">
+                <div id="result-level" class="result-level"></div>
+                <div class="result-sub">Твой результат</div>
+                <div id="result-percentage" class="percentage">0%</div>
+                <div id="result-compare" class="result-compare"></div>
+                <div id="result-message" class="result-message"></div>
+
+                <div class="stats">
+                    <div class="stat green"><strong id="correct-count">0</strong><span class="label">🟢 100%</span></div>
+                    <div class="stat yellow"><strong id="yellow-count">0</strong><span class="label">🟡 65%</span></div>
+                    <div class="stat red"><strong id="wrong-count">0</strong><span class="label">🔴 25%</span></div>
+                </div>
+
+                <div class="final-divider"></div>
+
+                <div style="margin:16px 0 20px;">
+                    <div style="text-align:center;font-size:14px;color:#f7971e;margin-bottom:12px;font-weight:700;letter-spacing:1px;">🗺️ ПУТЬ ПО ВЕТКАМ</div>
+                    <div class="branch-graph">
+                        <div class="branch-row"><div class="branch-dots" id="dotsHard" style="justify-content:center;"></div></div>
+                        <div class="branch-row"><div class="branch-dots" id="dotsMedium" style="justify-content:center;"></div></div>
+                        <div class="branch-row"><div class="branch-dots" id="dotsEasy" style="justify-content:center;"></div></div>
+                        <div class="branch-row" style="margin-top:4px;">
+                            <div class="branch-dots" id="questionNumbers" style="font-size:10px;color:#667799;gap:6px;justify-content:center;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="final-divider"></div>
+
+                <div><span id="finalVerdict" class="final-verdict"></span></div>
+                <div class="final-details" id="finalDetails"></div>
+
+                <div class="final-divider-thick"></div>
+
+                <div class="secret-area" id="secretArea">
+                    <div class="secret-title">🔐 Секретный вопрос</div>
+                    <div class="secret-sub">Ты набрал больше 60% — тебе доступен особый вопрос!</div>
+                    <div id="secretQuestion" class="question" style="font-size:22px;margin:12px 0 16px;"></div>
+                    <div class="secret-input-wrap">
+                        <input type="text" id="secretInput" placeholder="Напиши свой ответ...">
+                        <button class="primary" id="secretSubmitBtn" onclick="handleSecretTextAnswer()">Отправить →</button>
+                    </div>
+                    <div class="secret-result" id="secretResult"></div>
+                </div>
+
+                <div class="final-actions">
+                    <button class="share-btn" onclick="shareResult()">📤 Поделиться результатом</button>
+                </div>
+                <div class="final-actions" style="margin-top:4px;">
+                    <button class="primary" onclick="location.reload()">🏠 На главную</button>
+                    <button class="secondary" onclick="openAdminPassword()">⚙️ Админ-панель</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ADMIN -->
+        <section id="admin-screen" class="screen">
+            <div class="card">
+                <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;justify-content:center;">
+                    <button class="secondary" style="width:auto;padding:10px 20px;" onclick="showScreen('start-screen')">🏠 Главная</button>
+                    <button class="secondary" style="width:auto;padding:10px 20px;" id="refreshAdminBtn">🔄 Обновить</button>
+                    <button class="admin-btn-danger" id="clearAllBtn">🗑️ Очистить всё</button>
+                    <button class="admin-btn-success" id="exportBtn">📤 Экспорт</button>
+                </div>
+                <h1>⚙️ Админ-панель</h1>
+                <p class="subtitle" id="adminStatus">📡 Подключение к базе данных...</p>
+                <div class="admin-table-wrap">
+                    <table class="admin-table">
+                        <thead>
+                            <tr><th>Имя</th><th>Статус</th><th>Дата</th><th>Результат</th><th>Действие</th></tr>
+                        </thead>
+                        <tbody id="adminBody">
+                            <tr><td colspan="5" style="text-align:center;color:#8899bb;padding:30px;">⏳ Загрузка данных...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        // ============================================================
+        // 🔥 ПОДКЛЮЧЕНИЕ К SUPABASE (ИСПРАВЛЕННОЕ)
+        // ============================================================
+        console.log('🚀 Запуск приложения...');
+
+        const SUPABASE_URL = 'https://fgrpcjdrnbdifnhjwduk.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_JM36Q3P15HH-to1Wj34VSg_jGjKZhb';
+
+        // Переменная для клиента Supabase
+        let db = null;
+
+        // Проверяем, загружена ли библиотека
+        if (typeof supabaseJs === 'undefined') {
+            console.error('❌ supabaseJs не загружен!');
+            alert('Ошибка: библиотека Supabase не загружена. Проверьте интернет-соединение и перезагрузите страницу.');
+        } else {
+            try {
+                // Используем современный синтаксис
+                const { createClient } = supabaseJs;
+                db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                console.log('✅ Supabase клиент создан');
+                document.getElementById('adminStatus').textContent = '✅ База данных подключена';
+            } catch (e) {
+                console.error('❌ Ошибка создания клиента:', e);
+                alert('Ошибка подключения к Supabase: ' + e.message);
+            }
+        }
+
+        // ============================================================
+        // 📋 ПРОВЕРКА ТАБЛИЦЫ
+        // ============================================================
+        async function initDatabase() {
+            if (!db) {
+                console.error('❌ Нет подключения к базе данных');
+                return false;
+            }
+
+            try {
+                console.log('📋 Проверка таблицы players...');
+                const { data, error } = await db
+                    .from('players')
+                    .select('name')
+                    .limit(1);
+
+                if (error && error.code === '42P01') {
+                    console.error('❌ Таблица не найдена!');
+                    document.getElementById('adminStatus').textContent = '⚠️ Таблица не создана';
+                    showToast('⚠️ Таблица "players" не найдена. Создайте её в Supabase Dashboard.', 'error');
+                    return false;
+                }
+
+                if (error) {
+                    console.error('❌ Ошибка:', error);
+                    document.getElementById('adminStatus').textContent = '⚠️ Ошибка подключения';
+                    return false;
+                }
+
+                console.log('✅ Таблица существует');
+                document.getElementById('adminStatus').textContent = '✅ База данных подключена';
+                return true;
+            } catch (e) {
+                console.error('Ошибка инициализации:', e);
+                document.getElementById('adminStatus').textContent = '⚠️ Ошибка подключения к БД';
+                return false;
+            }
+        }
+
+        // ============================================================
+        // 🍞 TOAST УВЕДОМЛЕНИЯ
+        // ============================================================
+        let toastTimeout;
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            if (!toast) return;
+            toast.textContent = message;
+            toast.className = 'toast show ' + type;
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 4000);
+        }
+
+        // ============================================================
+        // 🎮 ДИСКЛЕЙМЕР
+        // ============================================================
+        function openDisclaimer() {
+            console.log('🔓 openDisclaimer вызвана');
+            const overlay = document.getElementById('disclaimerOverlay');
+            if (overlay) {
+                overlay.classList.add('active');
+                const check = document.getElementById('disclaimerCheck');
+                if (check) check.checked = false;
+                const btn = document.getElementById('acceptBtn');
+                if (btn) btn.disabled = true;
+            }
+        }
+
+        function closeDisclaimer() {
+            console.log('🔒 closeDisclaimer вызвана');
+            const overlay = document.getElementById('disclaimerOverlay');
+            if (overlay) overlay.classList.remove('active');
+        }
+
+        function acceptDisclaimer() {
+            console.log('✅ acceptDisclaimer вызвана');
+            const check = document.getElementById('disclaimerCheck');
+            if (!check || !check.checked) {
+                if (check) {
+                    check.style.border = '2px solid #ff5c6c';
+                    setTimeout(() => { check.style.border = ''; }, 1500);
+                }
+                return;
+            }
+            closeDisclaimer();
+            setTimeout(startQuiz, 300);
+        }
+
+        // ============================================================
+        // 🔐 АДМИН ПАРОЛЬ
+        // ============================================================
+        const ADMIN_PASSWORD = 'Win44Vad';
+
+        function openAdminPassword() {
+            console.log('🔐 openAdminPassword вызвана');
+            const overlay = document.getElementById('adminPasswordOverlay');
+            if (overlay) {
+                overlay.classList.add('active');
+                const input = document.getElementById('adminPasswordInput');
+                if (input) {
+                    input.value = '';
+                    input.focus();
+                }
+                const error = document.getElementById('adminPasswordError');
+                if (error) error.textContent = '';
+            }
+        }
+
+        function closeAdminPassword() {
+            console.log('🔒 closeAdminPassword вызвана');
+            const overlay = document.getElementById('adminPasswordOverlay');
+            if (overlay) overlay.classList.remove('active');
+        }
+
+        function checkAdminPassword() {
+            console.log('🔑 checkAdminPassword вызвана');
+            const input = document.getElementById('adminPasswordInput');
+            const error = document.getElementById('adminPasswordError');
+            if (!input) return;
+
+            const password = input.value.trim();
+            if (!password) {
+                if (error) error.textContent = '⚠️ Введите пароль';
+                input.style.borderColor = '#ff5c6c';
+                return;
+            }
+
+            if (password === ADMIN_PASSWORD) {
+                closeAdminPassword();
+                showScreen('admin-screen');
+                renderAdmin();
+                showToast('✅ Добро пожаловать в админ-панель!', 'success');
+            } else {
+                if (error) error.textContent = '❌ Неверный пароль';
+                input.style.borderColor = '#ff5c6c';
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        // ============================================================
+        // 📱 НАВИГАЦИЯ
+        // ============================================================
+        function showScreen(id) {
+            console.log('📱 showScreen вызвана:', id);
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            const screen = document.getElementById(id);
+            if (screen) screen.classList.add('active');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if (id === 'admin-screen') renderAdmin();
+        }
+
+        // ============================================================
+        // 📊 РАБОТА С БАЗОЙ (ВСЕ ФУНКЦИИ ИСПОЛЬЗУЮТ db ВМЕСТО supabase)
+        // ============================================================
+        async function savePlayerToCloud(name, data) {
+            if (!db) {
+                console.error('❌ Нет подключения к базе');
+                return false;
+            }
+
+            try {
+                const payload = {
+                    name: name,
+                    is_active: data.isActive || false,
+                    completed: data.completed || false,
+                    timeout: data.timeout || false,
+                    started_at: data.startedAt || null,
+                    ended_at: data.endedAt || null,
+                    current_phase: data.currentPhase || 'test',
+                    current_question: data.currentQuestion || 0,
+                    current_branch: data.currentBranch || null,
+                    test_scores: JSON.stringify(data.testScores || []),
+                    main_answers: JSON.stringify(data.mainAnswers || []),
+                    branch_history: JSON.stringify(data.branchHistory || []),
+                    total_questions: data.totalQuestions || 15,
+                    green_count: data.greenCount || 0,
+                    yellow_count: data.yellowCount || 0,
+                    red_count: data.redCount || 0,
+                    timeout_count: data.timeoutCount || 0,
+                    secret_answered: data.secretAnswered || false,
+                    secret_answer: data.secretAnswer || '',
+                    updated_at: new Date().toISOString()
+                };
+
+                const { error } = await db
+                    .from('players')
+                    .upsert(payload, { onConflict: 'name' });
+
+                if (error) {
+                    console.error('❌ Ошибка сохранения:', error);
+                    showToast('⚠️ Ошибка сохранения', 'error');
+                    return false;
+                }
+                console.log('✅ Данные сохранены');
+                return true;
+            } catch (e) {
+                console.error('❌ Критическая ошибка:', e);
+                return false;
+            }
+        }
+
+        async function getPlayerFromCloud(name) {
+            if (!db) {
+                console.error('❌ Нет подключения к базе');
+                return null;
+            }
+
+            try {
+                const { data, error } = await db
+                    .from('players')
+                    .select('*')
+                    .eq('name', name)
+                    .maybeSingle();
+
+                if (error || !data) return null;
+                return {
+                    name: data.name,
+                    isActive: data.is_active,
+                    completed: data.completed,
+                    timeout: data.timeout,
+                    startedAt: data.started_at,
+                    endedAt: data.ended_at,
+                    currentPhase: data.current_phase,
+                    currentQuestion: data.current_question,
+                    currentBranch: data.current_branch,
+                    testScores: JSON.parse(data.test_scores || '[]'),
+                    mainAnswers: JSON.parse(data.main_answers || '[]'),
+                    branchHistory: JSON.parse(data.branch_history || '[]'),
+                    totalQuestions: data.total_questions || 15,
+                    greenCount: data.green_count || 0,
+                    yellowCount: data.yellow_count || 0,
+                    redCount: data.red_count || 0,
+                    timeoutCount: data.timeout_count || 0,
+                    secretAnswered: data.secret_answered || false,
+                    secretAnswer: data.secret_answer || ''
+                };
+            } catch (e) {
+                console.error('❌ Ошибка:', e);
+                return null;
+            }
+        }
+
+        async function getAllPlayers() {
+            if (!db) {
+                console.error('❌ Нет подключения к базе');
+                return {};
+            }
+
+            try {
+                const { data, error } = await db
+                    .from('players')
+                    .select('*')
+                    .order('ended_at', { ascending: false });
+
+                if (error) {
+                    console.error('❌ Ошибка получения:', error);
+                    return {};
+                }
+
+                const result = {};
+                data.forEach(row => {
+                    result[row.name] = {
+                        name: row.name,
+                        isActive: row.is_active,
+                        completed: row.completed,
+                        timeout: row.timeout,
+                        startedAt: row.started_at,
+                        endedAt: row.ended_at,
+                        currentPhase: row.current_phase,
+                        currentQuestion: row.current_question,
+                        currentBranch: row.current_branch,
+                        testScores: JSON.parse(row.test_scores || '[]'),
+                        mainAnswers: JSON.parse(row.main_answers || '[]'),
+                        branchHistory: JSON.parse(row.branch_history || '[]'),
+                        totalQuestions: row.total_questions || 15,
+                        greenCount: row.green_count || 0,
+                        yellowCount: row.yellow_count || 0,
+                        redCount: row.red_count || 0,
+                        timeoutCount: row.timeout_count || 0,
+                        secretAnswered: row.secret_answered || false,
+                        secretAnswer: row.secret_answer || ''
+                    };
+                });
+                return result;
+            } catch (e) {
+                console.error('❌ Ошибка:', e);
+                return {};
+            }
+        }
+
+        // ============================================================
+        // 🎯 СТАРТ ИГРЫ
+        // ============================================================
+        let playerName = '';
+
+        async function startQuiz() {
+            console.log('🚀 startQuiz вызвана!');
+
+            const nameInput = document.getElementById('player-name');
+            const errorEl = document.getElementById('nameError');
+
+            if (!nameInput) {
+                console.error('❌ Поле ввода имени не найдено');
+                return;
+            }
+
+            const name = nameInput.value.trim();
+
+            if (!name) {
+                if (errorEl) errorEl.textContent = '⚠️ Введите ваше имя';
+                nameInput.style.borderColor = '#ff5c6c';
+                return;
+            }
+
+            if (name.length < 2) {
+                if (errorEl) errorEl.textContent = '⚠️ Минимум 2 символа';
+                nameInput.style.borderColor = '#ff5c6c';
+                return;
+            }
+
+            const namePattern = /^[a-zA-Zа-яА-ЯёЁ\s\-]+$/;
+            if (!namePattern.test(name)) {
+                if (errorEl) errorEl.textContent = '⚠️ Используйте только буквы!';
+                nameInput.style.borderColor = '#ff5c6c';
+                return;
+            }
+
+            if (errorEl) errorEl.textContent = '';
+            nameInput.style.borderColor = '';
+
+            try {
+                if (!db) {
+                    if (errorEl) errorEl.textContent = '⚠️ Ошибка подключения к базе данных';
+                    showToast('❌ Нет подключения к базе', 'error');
+                    return;
+                }
+
+                const existing = await getPlayerFromCloud(name);
+                if (existing && (existing.completed || existing.timeout)) {
+                    if (errorEl) errorEl.textContent = '⛔ Вы уже проходили эту викторину!';
+                    nameInput.style.borderColor = '#ff5c6c';
+                    return;
+                }
+
+                playerName = name;
+
+                const game = {
+                    name: name,
+                    isActive: true,
+                    completed: false,
+                    timeout: false,
+                    startedAt: new Date().toISOString(),
+                    endedAt: null,
+                    currentPhase: 'test',
+                    currentQuestion: 0,
+                    currentBranch: null,
+                    testScores: [],
+                    mainAnswers: [],
+                    branchHistory: [],
+                    totalQuestions: 15,
+                    greenCount: 0,
+                    yellowCount: 0,
+                    redCount: 0,
+                    timeoutCount: 0,
+                    secretAnswered: false,
+                    secretAnswer: ''
+                };
+
+                await savePlayerToCloud(name, game);
+                showToast('🎮 Игра началась! Удачи!', 'success');
+                showScreen('quiz-screen');
+
+            } catch (e) {
+                console.error('❌ Критическая ошибка:', e);
+                if (errorEl) errorEl.textContent = '⚠️ Ошибка подключения к серверу';
+                showToast('❌ Ошибка подключения к серверу', 'error');
+            }
+        }
+
+        // ============================================================
+        // 🖥️ АДМИН-ПАНЕЛЬ
+        // ============================================================
+        async function renderAdmin() {
+            console.log('📊 renderAdmin вызвана');
+            const tbody = document.getElementById('adminBody');
+            if (!tbody) {
+                console.error('❌ tbody не найден');
+                return;
+            }
+
+            if (!db) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#ff5c6c;padding:30px;">❌ Нет подключения к базе данных</td></tr>';
+                document.getElementById('adminStatus').textContent = '❌ Нет подключения';
+                return;
+            }
+
+            try {
+                const players = await getAllPlayers();
+                const names = Object.keys(players);
+
+                if (names.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#8899bb;padding:30px;">📭 Нет данных</td></tr>';
+                    document.getElementById('adminStatus').textContent = '📭 Нет записей';
+                    return;
+                }
+
+                tbody.innerHTML = names.map(name => {
+                    const p = players[name];
+                    let status = '🟢 Активна';
+                    let statusColor = '#2ecc71';
+                    if (p.completed) { status = '🏁 Завершена';
+                        statusColor = '#f7971e'; }
+                    if (p.timeout) { status = '⏰ Таймаут';
+                        statusColor = '#ff5c6c'; }
+                    if (!p.isActive && !p.completed && !p.timeout) { status = '⏸️ Прервана';
+                        statusColor = '#8899bb'; }
+
+                    const total = p.totalQuestions || 15;
+                    const green = p.greenCount || 0;
+                    const percent = Math.round((green / total) * 100);
+                    const date = p.endedAt ? new Date(p.endedAt).toLocaleString() :
+                        (p.startedAt ? new Date(p.startedAt).toLocaleString() : '-');
+                    const isCompleted = p.completed || p.timeout;
+                    const badgeColor = percent >= 65 ? '#39d98a' : percent >= 40 ? '#f1c40f' : '#ff5c6c';
+
+                    return `<tr>
+                        <td><strong>${name}</strong></td>
+                        <td style="color:${statusColor}">${status}</td>
+                        <td style="font-size:12px;color:#8899bb;">${date}</td>
+                        <td><span style="background:${badgeColor};padding:3px 12px;border-radius:12px;font-size:12px;font-weight:600;color:#0f1117;">${percent}%</span></td>
+                        <td>
+                            <button class="admin-btn admin-btn-view" onclick="viewAnswers('${name}')">📋</button>
+                            ${isCompleted ? `<button class="admin-btn admin-btn-del" onclick="deletePlayer('${name}')">🗑️</button>` : ''}
+                        </td>
+                    </tr>`;
+                }).join('');
+
+                document.getElementById('adminStatus').textContent = `✅ Загружено ${names.length} записей`;
+            } catch (e) {
+                console.error('❌ Ошибка:', e);
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#ff5c6c;padding:30px;">❌ Ошибка загрузки данных</td></tr>';
+            }
+        }
+
+        async function viewAnswers(name) {
+            try {
+                const p = await getPlayerFromCloud(name);
+                if (!p) {
+                    showToast('⚠️ Игрок не найден', 'error');
+                    return;
+                }
+
+                document.getElementById('modalTitle').textContent = `📋 Ответы: ${name}`;
+                const body = document.getElementById('modalBody');
+                body.innerHTML = `
+                    <p style="color:#8899bb;margin-bottom:12px;">Статус: ${p.completed ? '🏁 Завершена' : p.timeout ? '⏰ Таймаут' : '⏸️ Прервана'}</p>
+                    <div style="margin-top:12px;padding:10px;background:rgba(26,36,64,0.3);border-radius:8px;font-size:13px;color:#8899bb;">
+                        <strong style="color:#c0d0e0;">📊 Статистика:</strong><br>
+                        🟢 100%: ${p.greenCount || 0} &nbsp;|&nbsp; 🟡 65%: ${p.yellowCount || 0} &nbsp;|&nbsp; 🔴 25%: ${(p.redCount || 0) + (p.timeoutCount || 0)}
+                    </div>
+                `;
+                document.getElementById('answersModal').classList.add('active');
+            } catch (e) {
+                console.error('❌ Ошибка:', e);
+                showToast('❌ Ошибка загрузки ответов', 'error');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('answersModal').classList.remove('active');
+        }
+
+        async function deletePlayer(name) {
+            if (!confirm(`🗑️ Удалить игрока "${name}"?`)) return;
+            if (!db) {
+                showToast('❌ Нет подключения к базе', 'error');
+                return;
+            }
+            try {
+                const { error } = await db.from('players').delete().eq('name', name);
+                if (error) {
+                    showToast('❌ Ошибка удаления', 'error');
+                    return;
+                }
+                showToast(`✅ Игрок "${name}" удалён`, 'success');
+                renderAdmin();
+            } catch (e) {
+                showToast('❌ Ошибка удаления', 'error');
+            }
+        }
+
+        async function clearAllData() {
+            if (!confirm('⚠️ Удалить ВСЕ данные? Это действие необратимо!')) return;
+            if (!db) {
+                showToast('❌ Нет подключения к базе', 'error');
+                return;
+            }
+            try {
+                const { error } = await db.from('players').delete().neq('name', '');
+                if (error) {
+                    showToast('❌ Ошибка очистки', 'error');
+                    return;
+                }
+                showToast('🗑️ Все данные удалены', 'info');
+                renderAdmin();
+            } catch (e) {
+                showToast('❌ Ошибка очистки', 'error');
+            }
+        }
+
+        async function exportData() {
+            try {
+                const players = await getAllPlayers();
+                const names = Object.keys(players);
+                if (names.length === 0) {
+                    showToast('📭 Нет данных для экспорта', 'info');
+                    return;
+                }
+
+                const data = {
+                    exported_at: new Date().toISOString(),
+                    total_players: names.length,
+                    players: players
+                };
+
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `quiz_data_${new Date().toISOString().slice(0, 10)}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast(`📤 Экспортировано ${names.length} записей`, 'success');
+            } catch (e) {
+                showToast('❌ Ошибка экспорта', 'error');
+            }
+        }
+
+        // ============================================================
+        // 🔗 НАВЕШИВАЕМ ОБРАБОТЧИКИ
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 DOM загружен');
+
+            // Кнопка "Начать викторину"
+            const startBtn = document.getElementById('startBtn');
+            if (startBtn) {
+                startBtn.addEventListener('click', function() {
+                    console.log('🖱️ Клик по "Начать викторину"');
+                    openDisclaimer();
+                });
+                console.log('✅ startBtn обработчик добавлен');
+            } else {
+                console.error('❌ startBtn не найден');
+            }
+
+            // Кнопка "Админ-панель"
+            const adminBtn = document.getElementById('adminBtn');
+            if (adminBtn) {
+                adminBtn.addEventListener('click', function() {
+                    console.log('🖱️ Клик по "Админ-панель"');
+                    openAdminPassword();
+                });
+                console.log('✅ adminBtn обработчик добавлен');
+            } else {
+                console.error('❌ adminBtn не найден');
+            }
+
+            // Кнопка "Отмена" в дисклеймере
+            const cancelBtn = document.getElementById('disclaimerCancelBtn');
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', closeDisclaimer);
+            }
+
+            // Кнопка "Принимаю"
+            const acceptBtn = document.getElementById('acceptBtn');
+            if (acceptBtn) {
+                acceptBtn.addEventListener('click', acceptDisclaimer);
+            }
+
+            // Кнопка "Отмена" в админ-панели
+            const adminCancelBtn = document.getElementById('adminCancelBtn');
+            if (adminCancelBtn) {
+                adminCancelBtn.addEventListener('click', closeAdminPassword);
+            }
+
+            // Кнопка "Войти" в админ-панели
+            const adminLoginBtn = document.getElementById('adminLoginBtn');
+            if (adminLoginBtn) {
+                adminLoginBtn.addEventListener('click', checkAdminPassword);
+            }
+
+            // Enter в поле пароля
+            const passwordInput = document.getElementById('adminPasswordInput');
+            if (passwordInput) {
+                passwordInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        checkAdminPassword();
+                    }
+                });
+            }
+
+            // Enter в поле имени
+            const nameInput = document.getElementById('player-name');
+            if (nameInput) {
+                nameInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        openDisclaimer();
+                    }
+                });
+            }
+
+            // Кнопки в админ-панели
+            const refreshBtn = document.getElementById('refreshAdminBtn');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', renderAdmin);
+            }
+
+            const clearBtn = document.getElementById('clearAllBtn');
+            if (clearBtn) {
+                clearBtn.addEventListener('click', clearAllData);
+            }
+
+            const exportBtn = document.getElementById('exportBtn');
+            if (exportBtn) {
+                exportBtn.addEventListener('click', exportData);
+            }
+
+            console.log('✅ Все обработчики навешаны');
+        });
+
+        // ============================================================
+        // 🚀 ЗАПУСК (ТОЛЬКО ЕСЛИ db СОЗДАН)
+        // ============================================================
+        async function initApp() {
+            console.log('🚀 Инициализация приложения...');
+
+            if (!db) {
+                console.error('❌ Нет подключения к базе данных');
+                document.getElementById('adminStatus').textContent = '❌ Нет подключения к БД';
+                showToast('❌ Нет подключения к базе данных', 'error');
+                showScreen('start-screen');
+                return;
+            }
+
+            const connected = await initDatabase();
+            if (connected) {
+                showToast('✅ Приложение готово к работе!', 'success');
+            } else {
+                showToast('⚠️ Проверьте подключение к базе данных', 'error');
+            }
+
+            showScreen('start-screen');
+        }
+
+        // Запускаем приложение
+        initApp();
+    </script>
+
+</body>
+</html>
