@@ -1,0 +1,622 @@
+<script>
+    // ============================================================
+    // 🔥 ПОДКЛЮЧЕНИЕ К SUPABASE - ТОЛЬКО ОДИН РАЗ!
+    // ============================================================
+    console.log('🚀 Запуск приложения...');
+
+    const SUPABASE_URL = 'https://fgrpcjdrnbdifnhjwduk.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_JM36Q3P15HH-to1Wj34VSg_jGjKZhb';
+
+    // Проверяем загрузку библиотеки
+    if (typeof supabaseJs === 'undefined') {
+        console.error('❌ supabaseJs не загружен!');
+        alert('Ошибка: библиотека Supabase не загружена');
+    }
+
+    // ЕДИНСТВЕННОЕ ОБЪЯВЛЕНИЕ supabase!
+    const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('✅ Supabase клиент создан');
+
+    // ============================================================
+    // 📋 ПРОВЕРКА ТАБЛИЦЫ
+    // ============================================================
+    async function initDatabase() {
+        try {
+            console.log('📋 Проверка таблицы players...');
+            const { data, error } = await supabase
+                .from('players')
+                .select('name')
+                .limit(1);
+
+            if (error && error.code === '42P01') {
+                console.error('❌ Таблица не найдена!');
+                document.getElementById('adminStatus').textContent = '⚠️ Таблица не создана';
+                return false;
+            }
+
+            console.log('✅ Таблица существует');
+            document.getElementById('adminStatus').textContent = '✅ База данных подключена';
+            return true;
+        } catch (e) {
+            console.error('Ошибка инициализации:', e);
+            document.getElementById('adminStatus').textContent = '⚠️ Ошибка подключения к БД';
+            return false;
+        }
+    }
+
+    // ============================================================
+    // 🍞 TOAST УВЕДОМЛЕНИЯ
+    // ============================================================
+    let toastTimeout;
+
+    function showToast(message, type = 'info') {
+        const toast = document.getElementById('toast');
+        if (!toast) return;
+        toast.textContent = message;
+        toast.className = 'toast show ' + type;
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => {
+            toast.classList.remove('show');
+        }, 4000);
+    }
+
+    // ============================================================
+    // 🎮 ДИСКЛЕЙМЕР
+    // ============================================================
+    function openDisclaimer() {
+        console.log('🔓 openDisclaimer вызвана');
+        const overlay = document.getElementById('disclaimerOverlay');
+        if (overlay) {
+            overlay.classList.add('active');
+            document.getElementById('disclaimerCheck').checked = false;
+            document.getElementById('acceptBtn').disabled = true;
+        }
+    }
+
+    function closeDisclaimer() {
+        console.log('🔒 closeDisclaimer вызвана');
+        const overlay = document.getElementById('disclaimerOverlay');
+        if (overlay) overlay.classList.remove('active');
+    }
+
+    function acceptDisclaimer() {
+        console.log('✅ acceptDisclaimer вызвана');
+        const check = document.getElementById('disclaimerCheck');
+        if (!check || !check.checked) {
+            if (check) {
+                check.style.border = '2px solid #ff5c6c';
+                setTimeout(() => { check.style.border = ''; }, 1500);
+            }
+            return;
+        }
+        closeDisclaimer();
+        setTimeout(startQuiz, 300);
+    }
+
+    // Обработчик чекбокса
+    document.addEventListener('DOMContentLoaded', function() {
+        const check = document.getElementById('disclaimerCheck');
+        const btn = document.getElementById('acceptBtn');
+        if (check && btn) {
+            check.addEventListener('change', function() {
+                btn.disabled = !this.checked;
+            });
+        }
+    });
+
+    // ============================================================
+    // 🔐 АДМИН ПАРОЛЬ
+    // ============================================================
+    const ADMIN_PASSWORD = 'Win44Vad';
+
+    function openAdminPassword() {
+        console.log('🔐 openAdminPassword вызвана');
+        const overlay = document.getElementById('adminPasswordOverlay');
+        if (overlay) {
+            overlay.classList.add('active');
+            document.getElementById('adminPasswordInput').value = '';
+            document.getElementById('adminPasswordError').textContent = '';
+            document.getElementById('adminPasswordInput').focus();
+        }
+    }
+
+    function closeAdminPassword() {
+        console.log('🔒 closeAdminPassword вызвана');
+        const overlay = document.getElementById('adminPasswordOverlay');
+        if (overlay) overlay.classList.remove('active');
+    }
+
+    function checkAdminPassword() {
+        console.log('🔑 checkAdminPassword вызвана');
+        const input = document.getElementById('adminPasswordInput');
+        const error = document.getElementById('adminPasswordError');
+        if (!input) return;
+        
+        const password = input.value.trim();
+        if (!password) {
+            if (error) error.textContent = '⚠️ Введите пароль';
+            input.style.borderColor = '#ff5c6c';
+            return;
+        }
+
+        if (password === ADMIN_PASSWORD) {
+            closeAdminPassword();
+            showScreen('admin-screen');
+            renderAdmin();
+            showToast('✅ Добро пожаловать в админ-панель!', 'success');
+        } else {
+            if (error) error.textContent = '❌ Неверный пароль';
+            input.style.borderColor = '#ff5c6c';
+            input.value = '';
+            input.focus();
+        }
+    }
+
+    // ============================================================
+    // 📱 НАВИГАЦИЯ
+    // ============================================================
+    function showScreen(id) {
+        console.log('📱 showScreen вызвана:', id);
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        const screen = document.getElementById(id);
+        if (screen) screen.classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (id === 'admin-screen') renderAdmin();
+    }
+
+    // ============================================================
+    // 📊 РАБОТА С БАЗОЙ
+    // ============================================================
+    async function savePlayerToCloud(name, data) {
+        try {
+            const payload = {
+                name: name,
+                is_active: data.isActive || false,
+                completed: data.completed || false,
+                timeout: data.timeout || false,
+                started_at: data.startedAt || null,
+                ended_at: data.endedAt || null,
+                current_phase: data.currentPhase || 'test',
+                current_question: data.currentQuestion || 0,
+                current_branch: data.currentBranch || null,
+                test_scores: JSON.stringify(data.testScores || []),
+                main_answers: JSON.stringify(data.mainAnswers || []),
+                branch_history: JSON.stringify(data.branchHistory || []),
+                total_questions: data.totalQuestions || 15,
+                green_count: data.greenCount || 0,
+                yellow_count: data.yellowCount || 0,
+                red_count: data.redCount || 0,
+                timeout_count: data.timeoutCount || 0,
+                secret_answered: data.secretAnswered || false,
+                secret_answer: data.secretAnswer || '',
+                updated_at: new Date().toISOString()
+            };
+
+            const { error } = await supabase
+                .from('players')
+                .upsert(payload, { onConflict: 'name' });
+
+            if (error) {
+                console.error('❌ Ошибка сохранения:', error);
+                showToast('⚠️ Ошибка сохранения', 'error');
+                return false;
+            }
+            console.log('✅ Данные сохранены');
+            return true;
+        } catch (e) {
+            console.error('❌ Критическая ошибка:', e);
+            return false;
+        }
+    }
+
+    async function getPlayerFromCloud(name) {
+        try {
+            const { data, error } = await supabase
+                .from('players')
+                .select('*')
+                .eq('name', name)
+                .maybeSingle();
+
+            if (error || !data) return null;
+            return {
+                name: data.name,
+                isActive: data.is_active,
+                completed: data.completed,
+                timeout: data.timeout,
+                startedAt: data.started_at,
+                endedAt: data.ended_at,
+                currentPhase: data.current_phase,
+                currentQuestion: data.current_question,
+                currentBranch: data.current_branch,
+                testScores: JSON.parse(data.test_scores || '[]'),
+                mainAnswers: JSON.parse(data.main_answers || '[]'),
+                branchHistory: JSON.parse(data.branch_history || '[]'),
+                totalQuestions: data.total_questions || 15,
+                greenCount: data.green_count || 0,
+                yellowCount: data.yellow_count || 0,
+                redCount: data.red_count || 0,
+                timeoutCount: data.timeout_count || 0,
+                secretAnswered: data.secret_answered || false,
+                secretAnswer: data.secret_answer || ''
+            };
+        } catch (e) {
+            console.error('❌ Ошибка:', e);
+            return null;
+        }
+    }
+
+    async function getAllPlayers() {
+        try {
+            const { data, error } = await supabase
+                .from('players')
+                .select('*')
+                .order('ended_at', { ascending: false });
+
+            if (error) {
+                console.error('❌ Ошибка получения:', error);
+                return {};
+            }
+
+            const result = {};
+            data.forEach(row => {
+                result[row.name] = {
+                    name: row.name,
+                    isActive: row.is_active,
+                    completed: row.completed,
+                    timeout: row.timeout,
+                    startedAt: row.started_at,
+                    endedAt: row.ended_at,
+                    currentPhase: row.current_phase,
+                    currentQuestion: row.current_question,
+                    currentBranch: row.current_branch,
+                    testScores: JSON.parse(row.test_scores || '[]'),
+                    mainAnswers: JSON.parse(row.main_answers || '[]'),
+                    branchHistory: JSON.parse(row.branch_history || '[]'),
+                    totalQuestions: row.total_questions || 15,
+                    greenCount: row.green_count || 0,
+                    yellowCount: row.yellow_count || 0,
+                    redCount: row.red_count || 0,
+                    timeoutCount: row.timeout_count || 0,
+                    secretAnswered: row.secret_answered || false,
+                    secretAnswer: row.secret_answer || ''
+                };
+            });
+            return result;
+        } catch (e) {
+            console.error('❌ Ошибка:', e);
+            return {};
+        }
+    }
+
+    // ============================================================
+    // 🎯 СТАРТ ИГРЫ
+    // ============================================================
+    let playerName = '';
+
+    async function startQuiz() {
+        console.log('🚀 startQuiz вызвана!');
+
+        const nameInput = document.getElementById('player-name');
+        const errorEl = document.getElementById('nameError');
+        
+        if (!nameInput) {
+            console.error('❌ Поле ввода имени не найдено');
+            return;
+        }
+
+        const name = nameInput.value.trim();
+        console.log('📝 Имя:', name);
+
+        if (!name) {
+            if (errorEl) errorEl.textContent = '⚠️ Введите ваше имя';
+            nameInput.style.borderColor = '#ff5c6c';
+            return;
+        }
+
+        if (name.length < 2) {
+            if (errorEl) errorEl.textContent = '⚠️ Минимум 2 символа';
+            nameInput.style.borderColor = '#ff5c6c';
+            return;
+        }
+
+        const namePattern = /^[a-zA-Zа-яА-ЯёЁ\s\-]+$/;
+        if (!namePattern.test(name)) {
+            if (errorEl) errorEl.textContent = '⚠️ Используйте только буквы!';
+            nameInput.style.borderColor = '#ff5c6c';
+            return;
+        }
+
+        if (errorEl) errorEl.textContent = '';
+        nameInput.style.borderColor = '';
+
+        try {
+            const existing = await getPlayerFromCloud(name);
+            if (existing && (existing.completed || existing.timeout)) {
+                if (errorEl) errorEl.textContent = '⛔ Вы уже проходили эту викторину!';
+                nameInput.style.borderColor = '#ff5c6c';
+                return;
+            }
+
+            playerName = name;
+
+            const game = {
+                name: name,
+                isActive: true,
+                completed: false,
+                timeout: false,
+                startedAt: new Date().toISOString(),
+                endedAt: null,
+                currentPhase: 'test',
+                currentQuestion: 0,
+                currentBranch: null,
+                testScores: [],
+                mainAnswers: [],
+                branchHistory: [],
+                totalQuestions: 15,
+                greenCount: 0,
+                yellowCount: 0,
+                redCount: 0,
+                timeoutCount: 0,
+                secretAnswered: false,
+                secretAnswer: ''
+            };
+
+            await savePlayerToCloud(name, game);
+            showToast('🎮 Игра началась! Удачи!', 'success');
+            showScreen('quiz-screen');
+            // Здесь будет логика вопросов
+            
+        } catch (e) {
+            console.error('❌ Критическая ошибка:', e);
+            if (errorEl) errorEl.textContent = '⚠️ Ошибка подключения к серверу';
+            showToast('❌ Ошибка подключения к серверу', 'error');
+        }
+    }
+
+    // ============================================================
+    // 🖥️ АДМИН-ПАНЕЛЬ
+    // ============================================================
+    async function renderAdmin() {
+        console.log('📊 renderAdmin вызвана');
+        const tbody = document.getElementById('adminBody');
+        if (!tbody) {
+            console.error('❌ tbody не найден');
+            return;
+        }
+
+        try {
+            const players = await getAllPlayers();
+            const names = Object.keys(players);
+
+            if (names.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#8899bb;padding:30px;">📭 Нет данных</td></tr>';
+                document.getElementById('adminStatus').textContent = '📭 Нет записей';
+                return;
+            }
+
+            tbody.innerHTML = names.map(name => {
+                const p = players[name];
+                let status = '🟢 Активна';
+                let statusColor = '#2ecc71';
+                if (p.completed) { status = '🏁 Завершена'; statusColor = '#f7971e'; }
+                if (p.timeout) { status = '⏰ Таймаут'; statusColor = '#ff5c6c'; }
+                if (!p.isActive && !p.completed && !p.timeout) { status = '⏸️ Прервана'; statusColor = '#8899bb'; }
+
+                const total = p.totalQuestions || 15;
+                const green = p.greenCount || 0;
+                const percent = Math.round((green / total) * 100);
+                const date = p.endedAt ? new Date(p.endedAt).toLocaleString() : 
+                           (p.startedAt ? new Date(p.startedAt).toLocaleString() : '-');
+                const isCompleted = p.completed || p.timeout;
+                const badgeColor = percent >= 65 ? '#39d98a' : percent >= 40 ? '#f1c40f' : '#ff5c6c';
+
+                return `<tr>
+                    <td><strong>${name}</strong></td>
+                    <td style="color:${statusColor}">${status}</td>
+                    <td style="font-size:12px;color:#8899bb;">${date}</td>
+                    <td><span style="background:${badgeColor};padding:3px 12px;border-radius:12px;font-size:12px;font-weight:600;color:#0f1117;">${percent}%</span></td>
+                    <td>
+                        <button class="admin-btn admin-btn-view" onclick="viewAnswers('${name}')">📋</button>
+                        ${isCompleted ? `<button class="admin-btn admin-btn-del" onclick="deletePlayer('${name}')">🗑️</button>` : ''}
+                    </td>
+                </tr>`;
+            }).join('');
+
+            document.getElementById('adminStatus').textContent = `✅ Загружено ${names.length} записей`;
+        } catch (e) {
+            console.error('❌ Ошибка:', e);
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#ff5c6c;padding:30px;">❌ Ошибка загрузки данных</td></tr>';
+        }
+    }
+
+    async function viewAnswers(name) {
+        try {
+            const p = await getPlayerFromCloud(name);
+            if (!p) {
+                showToast('⚠️ Игрок не найден', 'error');
+                return;
+            }
+
+            document.getElementById('modalTitle').textContent = `📋 Ответы: ${name}`;
+            const body = document.getElementById('modalBody');
+            body.innerHTML = `
+                <p style="color:#8899bb;margin-bottom:12px;">Статус: ${p.completed ? '🏁 Завершена' : p.timeout ? '⏰ Таймаут' : '⏸️ Прервана'}</p>
+                <div style="margin-top:12px;padding:10px;background:rgba(26,36,64,0.3);border-radius:8px;font-size:13px;color:#8899bb;">
+                    <strong style="color:#c0d0e0;">📊 Статистика:</strong><br>
+                    🟢 100%: ${p.greenCount || 0} &nbsp;|&nbsp; 🟡 65%: ${p.yellowCount || 0} &nbsp;|&nbsp; 🔴 25%: ${(p.redCount || 0) + (p.timeoutCount || 0)}
+                </div>
+            `;
+            document.getElementById('answersModal').classList.add('active');
+        } catch (e) {
+            console.error('❌ Ошибка:', e);
+            showToast('❌ Ошибка загрузки ответов', 'error');
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('answersModal').classList.remove('active');
+    }
+
+    async function deletePlayer(name) {
+        if (!confirm(`🗑️ Удалить игрока "${name}"?`)) return;
+        try {
+            const { error } = await supabase.from('players').delete().eq('name', name);
+            if (error) {
+                showToast('❌ Ошибка удаления', 'error');
+                return;
+            }
+            showToast(`✅ Игрок "${name}" удалён`, 'success');
+            renderAdmin();
+        } catch (e) {
+            showToast('❌ Ошибка удаления', 'error');
+        }
+    }
+
+    async function clearAllData() {
+        if (!confirm('⚠️ Удалить ВСЕ данные? Это действие необратимо!')) return;
+        try {
+            const { error } = await supabase.from('players').delete().neq('name', '');
+            if (error) {
+                showToast('❌ Ошибка очистки', 'error');
+                return;
+            }
+            showToast('🗑️ Все данные удалены', 'info');
+            renderAdmin();
+        } catch (e) {
+            showToast('❌ Ошибка очистки', 'error');
+        }
+    }
+
+    async function exportData() {
+        try {
+            const players = await getAllPlayers();
+            const names = Object.keys(players);
+            if (names.length === 0) {
+                showToast('📭 Нет данных для экспорта', 'info');
+                return;
+            }
+
+            const data = {
+                exported_at: new Date().toISOString(),
+                total_players: names.length,
+                players: players
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `quiz_data_${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast(`📤 Экспортировано ${names.length} записей`, 'success');
+        } catch (e) {
+            showToast('❌ Ошибка экспорта', 'error');
+        }
+    }
+
+    // ============================================================
+    // 🔗 НАВЕШИВАЕМ ОБРАБОТЧИКИ
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('📄 DOM загружен');
+
+        // Кнопка "Начать викторину"
+        const startBtn = document.getElementById('startBtn');
+        if (startBtn) {
+            startBtn.addEventListener('click', function() {
+                console.log('🖱️ Клик по "Начать викторину"');
+                openDisclaimer();
+            });
+            console.log('✅ startBtn обработчик добавлен');
+        }
+
+        // Кнопка "Админ-панель"
+        const adminBtn = document.getElementById('adminBtn');
+        if (adminBtn) {
+            adminBtn.addEventListener('click', function() {
+                console.log('🖱️ Клик по "Админ-панель"');
+                openAdminPassword();
+            });
+            console.log('✅ adminBtn обработчик добавлен');
+        }
+
+        // Кнопка "Отмена" в дисклеймере
+        const cancelBtn = document.getElementById('disclaimerCancelBtn');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', closeDisclaimer);
+        }
+
+        // Кнопка "Принимаю"
+        const acceptBtn = document.getElementById('acceptBtn');
+        if (acceptBtn) {
+            acceptBtn.addEventListener('click', acceptDisclaimer);
+        }
+
+        // Кнопка "Отмена" в админ-панели
+        const adminCancelBtn = document.getElementById('adminCancelBtn');
+        if (adminCancelBtn) {
+            adminCancelBtn.addEventListener('click', closeAdminPassword);
+        }
+
+        // Кнопка "Войти" в админ-панели
+        const adminLoginBtn = document.getElementById('adminLoginBtn');
+        if (adminLoginBtn) {
+            adminLoginBtn.addEventListener('click', checkAdminPassword);
+        }
+
+        // Enter в поле пароля
+        const passwordInput = document.getElementById('adminPasswordInput');
+        if (passwordInput) {
+            passwordInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    checkAdminPassword();
+                }
+            });
+        }
+
+        // Enter в поле имени
+        const nameInput = document.getElementById('player-name');
+        if (nameInput) {
+            nameInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    openDisclaimer();
+                }
+            });
+        }
+
+        // Кнопки в админ-панели
+        const refreshBtn = document.getElementById('refreshAdminBtn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', renderAdmin);
+        }
+
+        const clearBtn = document.getElementById('clearAllBtn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', clearAllData);
+        }
+
+        const exportBtn = document.getElementById('exportBtn');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', exportData);
+        }
+
+        console.log('✅ Все обработчики навешаны');
+    });
+
+    // ============================================================
+    // 🚀 ЗАПУСК
+    // ============================================================
+    console.log('🚀 Инициализация приложения...');
+    initDatabase().then(connected => {
+        if (connected) {
+            showToast('✅ Приложение готово к работе!', 'success');
+        } else {
+            showToast('⚠️ Проверьте подключение к базе данных', 'error');
+        }
+    });
+
+    showScreen('start-screen');
+</script>
