@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>На сколько хорошо ты меня знаешь?</title>
     
-    <!-- ПРОСТОЙ СПОСОБ - через script с указанием версии -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js">
     </script>
     
@@ -701,58 +700,54 @@
 
     <script>
         // ============================================================
-        // 🔥 ПРОВЕРКА ЗАГРУЗКИ SUPABASE
-        // ============================================================
-        console.log('🚀 Запуск приложения...');
-        console.log('🔍 Проверка supabase:', typeof supabase);
-
-        // Если supabase не загружен - ждем
-        if (typeof supabase === 'undefined') {
-            console.log('⏳ Ожидание загрузки supabase...');
-            let attempts = 0;
-            const waitInterval = setInterval(function() {
-                attempts++;
-                console.log('⏳ Попытка ' + attempts);
-                if (typeof supabase !== 'undefined') {
-                    clearInterval(waitInterval);
-                    console.log('✅ supabase загружен!');
-                    startApp();
-                } else if (attempts > 30) {
-                    clearInterval(waitInterval);
-                    console.error('❌ supabase не загрузился');
-                    document.getElementById('adminStatus').textContent = '❌ Ошибка загрузки Supabase';
-                    alert('Ошибка: библиотека Supabase не загружена. Проверьте интернет-соединение.');
-                }
-            }, 300);
-        } else {
-            console.log('✅ supabase уже загружен');
-            startApp();
-        }
-
-        // ============================================================
-        // 🚀 ЗАПУСК ПРИЛОЖЕНИЯ
+        // 🔥 ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
         // ============================================================
         let db = null;
+        let dbReady = false;
+        let playerName = '';
 
-        function startApp() {
+        console.log('🚀 Запуск приложения...');
+
+        // ============================================================
+        // 🔌 ПОДКЛЮЧЕНИЕ К SUPABASE
+        // ============================================================
+        function initSupabase() {
             try {
+                // Проверяем, загружена ли библиотека
+                if (typeof supabase === 'undefined') {
+                    console.log('⏳ Ожидание загрузки supabase...');
+                    setTimeout(initSupabase, 500);
+                    return;
+                }
+
+                console.log('✅ supabase загружен');
+                
                 // Создаем клиент
                 db = supabase.createClient(
                     'https://fgrpcjdrnbdifnhjwduk.supabase.co',
                     'sb_publishable_JM36Q3P15HH-to1Wj34VSg_jGjKZhb'
                 );
+                dbReady = true;
                 console.log('✅ Supabase клиент создан');
                 document.getElementById('adminStatus').textContent = '✅ База данных подключена';
                 
                 // Проверяем таблицу
                 checkDatabase();
+                showToast('✅ Приложение готово к работе!', 'success');
+
             } catch (e) {
                 console.error('❌ Ошибка:', e);
+                document.getElementById('adminStatus').textContent = '❌ Ошибка подключения';
                 alert('Ошибка подключения к Supabase: ' + e.message);
             }
         }
 
         async function checkDatabase() {
+            if (!dbReady || !db) {
+                console.error('❌ База не готова');
+                return;
+            }
+
             try {
                 const { data, error } = await db.from('players').select('name').limit(1);
                 if (error && error.code === '42P01') {
@@ -764,12 +759,14 @@
                 } else {
                     console.log('✅ Таблица существует');
                     document.getElementById('adminStatus').textContent = '✅ База данных подключена';
-                    showToast('✅ Приложение готово к работе!', 'success');
                 }
             } catch (e) {
                 console.error('❌ Ошибка:', e);
             }
         }
+
+        // Запускаем инициализацию
+        setTimeout(initSupabase, 100);
 
         // ============================================================
         // 🍞 TOAST
@@ -870,7 +867,10 @@
         // 📊 РАБОТА С БАЗОЙ
         // ============================================================
         async function savePlayerToCloud(name, data) {
-            if (!db) return false;
+            if (!dbReady || !db) {
+                console.error('❌ База не готова');
+                return false;
+            }
             try {
                 const { error } = await db.from('players').upsert({
                     name: name,
@@ -894,13 +894,13 @@
                     secret_answer: data.secretAnswer || '',
                     updated_at: new Date().toISOString()
                 }, { onConflict: 'name' });
-                if (error) { console.error('❌ Ошибка:', error); return false; }
+                if (error) { console.error('❌ Ошибка сохранения:', error); return false; }
                 return true;
             } catch (e) { console.error('❌ Ошибка:', e); return false; }
         }
 
         async function getPlayerFromCloud(name) {
-            if (!db) return null;
+            if (!dbReady || !db) return null;
             try {
                 const { data, error } = await db.from('players').select('*').eq('name', name).maybeSingle();
                 if (error || !data) return null;
@@ -924,7 +924,7 @@
         }
 
         async function getAllPlayers() {
-            if (!db) return {};
+            if (!dbReady || !db) return {};
             try {
                 const { data, error } = await db.from('players').select('*').order('ended_at', { ascending: false });
                 if (error) return {};
@@ -952,9 +952,14 @@
         // ============================================================
         // 🎯 СТАРТ ИГРЫ
         // ============================================================
-        let playerName = '';
-
         async function startQuiz() {
+            console.log('🚀 startQuiz вызвана');
+            
+            if (!dbReady || !db) {
+                showToast('⚠️ Подождите, база данных подключается...', 'error');
+                return;
+            }
+
             const nameInput = document.getElementById('player-name');
             const errorEl = document.getElementById('nameError');
             const name = nameInput.value.trim();
@@ -979,10 +984,6 @@
             nameInput.style.borderColor = '';
 
             try {
-                if (!db) {
-                    errorEl.textContent = '⚠️ Ошибка подключения к базе данных';
-                    return;
-                }
                 const existing = await getPlayerFromCloud(name);
                 if (existing && (existing.completed || existing.timeout)) {
                     errorEl.textContent = '⛔ Вы уже проходили эту викторину!';
@@ -1004,6 +1005,7 @@
             } catch (e) {
                 console.error('❌ Ошибка:', e);
                 errorEl.textContent = '⚠️ Ошибка подключения к серверу';
+                showToast('❌ Ошибка подключения', 'error');
             }
         }
 
@@ -1012,8 +1014,8 @@
         // ============================================================
         async function renderAdmin() {
             const tbody = document.getElementById('adminBody');
-            if (!db) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#ff5c6c;padding:30px;">❌ Нет подключения к базе</td></tr>';
+            if (!dbReady || !db) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#ff5c6c;padding:30px;">⏳ Подключение к базе данных...</td></tr>';
                 return;
             }
 
@@ -1076,7 +1078,7 @@
 
         async function deletePlayer(name) {
             if (!confirm(`🗑️ Удалить игрока "${name}"?`)) return;
-            if (!db) { showToast('❌ Нет подключения', 'error'); return; }
+            if (!dbReady || !db) { showToast('❌ Нет подключения', 'error'); return; }
             try {
                 await db.from('players').delete().eq('name', name);
                 showToast(`✅ Игрок "${name}" удалён`, 'success');
@@ -1086,7 +1088,7 @@
 
         async function clearAllData() {
             if (!confirm('⚠️ Удалить ВСЕ данные?')) return;
-            if (!db) { showToast('❌ Нет подключения', 'error'); return; }
+            if (!dbReady || !db) { showToast('❌ Нет подключения', 'error'); return; }
             try {
                 await db.from('players').delete().neq('name', '');
                 showToast('🗑️ Все данные удалены', 'info');
@@ -1133,7 +1135,9 @@
             console.log('✅ Все обработчики навешаны');
         });
 
-        // Функции для кнопок в HTML (onclick)
+        // ============================================================
+        // 🎯 ФУНКЦИИ ДЛЯ HTML (onclick)
+        // ============================================================
         function handleSecretTextAnswer() {
             const input = document.getElementById('secretInput');
             const answer = input.value.trim();
@@ -1166,6 +1170,7 @@
         // 🏁 ПОКАЗЫВАЕМ СТАРТОВЫЙ ЭКРАН
         // ============================================================
         showScreen('start-screen');
+        console.log('✅ Приложение загружено');
     </script>
 </body>
 </html>
