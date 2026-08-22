@@ -765,9 +765,6 @@
             }
         }
 
-        // Запускаем инициализацию
-        setTimeout(initSupabase, 100);
-
         // ============================================================
         // 🍞 TOAST
         // ============================================================
@@ -808,10 +805,6 @@
             closeDisclaimer();
             setTimeout(startQuiz, 300);
         }
-
-        document.getElementById('disclaimerCheck').addEventListener('change', function() {
-            document.getElementById('acceptBtn').disabled = !this.checked;
-        });
 
         // ============================================================
         // 🔐 АДМИН ПАРОЛЬ
@@ -1167,10 +1160,15 @@
         }
 
         // ============================================================
-        // 🏁 ПОКАЗЫВАЕМ СТАРТОВЫЙ ЭКРАН
+        // 🏁 ЗАПУСК ПРИЛОЖЕНИЯ
         // ============================================================
+        // Сначала показываем экран
         showScreen('start-screen');
-        console.log('✅ Приложение загружено');
+        console.log('✅ Экран показан');
+
+        // Потом инициализируем Supabase
+        setTimeout(initSupabase, 100);
+        console.log('✅ Инициализация Supabase запущена');
     </script>
 </body>
 </html>
