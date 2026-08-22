@@ -4,17 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>На сколько хорошо ты меня знаешь?</title>
-
-    <!-- ====== ПОДКЛЮЧАЕМ SUPABASE ====== -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+    
+    <!-- ПРОСТОЙ СПОСОБ - через script с указанием версии -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js">
     </script>
-
+    
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             margin: 0;
             min-height: 100vh;
@@ -26,27 +22,15 @@
             justify-content: center;
             padding: 20px;
         }
-        button {
-            font: inherit;
-            cursor: pointer;
-        }
-        .app {
-            width: min(760px, 94%);
-            margin: 0 auto;
-            padding: 25px 0 50px;
-        }
-        .screen {
-            display: none;
-        }
-        .screen.active {
-            display: block;
-        }
+        .app { width: min(760px, 94%); margin: 0 auto; padding: 25px 0 50px; }
+        .screen { display: none; }
+        .screen.active { display: block; }
         .card {
             background: #181b24;
             border-radius: 24px;
             padding: 28px;
-            box-shadow: 0 15px 50px rgba(0, 0, 0, .35);
-            border: 1px solid rgba(255, 255, 255, 0.04);
+            box-shadow: 0 15px 50px rgba(0,0,0,.35);
+            border: 1px solid rgba(255,255,255,0.04);
         }
         h1 {
             margin-top: 0;
@@ -55,13 +39,8 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        .subtitle {
-            color: #aeb4c2;
-            line-height: 1.7;
-            font-size: 16px;
-        }
-        input[type="text"],
-        input[type="password"] {
+        .subtitle { color: #aeb4c2; line-height: 1.7; font-size: 16px; }
+        input[type="text"], input[type="password"] {
             width: 100%;
             padding: 16px 18px;
             margin: 15px 0;
@@ -71,11 +50,8 @@
             color: white;
             outline: none;
             font-size: 16px;
-            transition: border-color 0.3s;
         }
-        input:focus {
-            border-color: #6c5ce7;
-        }
+        input:focus { border-color: #6c5ce7; }
         .primary {
             width: 100%;
             padding: 16px 20px;
@@ -88,15 +64,8 @@
             cursor: pointer;
             transition: all .25s;
         }
-        .primary:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(108, 92, 231, 0.35);
-        }
-        .primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none !important;
-        }
+        .primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(108,92,231,0.35); }
+        .primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
         .secondary {
             width: 100%;
             padding: 16px 20px;
@@ -110,95 +79,8 @@
             transition: all .25s;
             margin-top: 10px;
         }
-        .secondary:hover {
-            background: #20232d;
-            border-color: #6c5ce7;
-        }
-        .topbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-        .question-number {
-            color: #aeb4c2;
-            font-size: 15px;
-        }
-        .timer {
-            min-width: 65px;
-            text-align: center;
-            padding: 9px 16px;
-            border-radius: 12px;
-            background: #252936;
-            font-weight: 700;
-            font-size: 20px;
-            color: #6c5ce7;
-        }
-        .timer.danger {
-            background: #7c2631;
-            color: #ff6b7a;
-            animation: pulse .6s infinite alternate;
-        }
-        @keyframes pulse {
-            from { transform: scale(1); }
-            to { transform: scale(1.06); }
-        }
-        .progress {
-            height: 6px;
-            border-radius: 20px;
-            background: #292d38;
-            overflow: hidden;
-            margin-bottom: 22px;
-        }
-        .progress-bar {
-            height: 100%;
-            width: 0;
-            background: linear-gradient(90deg, #6c5ce7, #a29bfe);
-            transition: width .4s ease;
-        }
-        .question {
-            font-size: 26px;
-            line-height: 1.4;
-            margin: 20px 0 24px;
-            color: #fff;
-            font-weight: 600;
-            min-height: 60px;
-        }
-        .answers {
-            display: grid;
-            gap: 10px;
-        }
-        .answer {
-            width: 100%;
-            padding: 16px 20px;
-            text-align: left;
-            border: 1px solid #343947;
-            border-radius: 14px;
-            background: #20232d;
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all .2s;
-        }
-        .answer:hover:not(:disabled) {
-            border-color: #6c5ce7;
-            transform: translateX(4px);
-        }
-        .answer .letter {
-            color: #6c5ce7;
-            font-weight: 700;
-            margin-right: 12px;
-        }
-        .answer:disabled {
-            cursor: default;
-            opacity: 0.7;
-        }
-        .answer.selected {
-            border-color: #6c5ce7;
-            background: rgba(108, 92, 231, 0.15);
-        }
-
+        .secondary:hover { background: #20232d; border-color: #6c5ce7; }
+        
         .disclaimer-overlay {
             display: none;
             position: fixed;
@@ -206,46 +88,30 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.88);
+            background: rgba(0,0,0,0.88);
             backdrop-filter: blur(12px);
             z-index: 1000;
             align-items: center;
             justify-content: center;
             padding: 20px;
         }
-        .disclaimer-overlay.active {
-            display: flex;
-        }
+        .disclaimer-overlay.active { display: flex; }
         .disclaimer-box {
             background: #181b24;
             border-radius: 24px;
             padding: 35px;
             max-width: 520px;
             width: 100%;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255,255,255,0.06);
+            box-shadow: 0 40px 100px rgba(0,0,0,0.8);
             max-height: 90vh;
             overflow-y: auto;
         }
-        .disclaimer-box .icon {
-            font-size: 48px;
-            text-align: center;
-            margin-bottom: 10px;
-        }
-        .disclaimer-box h2 {
-            text-align: center;
-            color: #fff;
-            font-size: 22px;
-            margin-bottom: 6px;
-        }
-        .disclaimer-box .sub {
-            text-align: center;
-            color: #8899bb;
-            font-size: 14px;
-            margin-bottom: 18px;
-        }
+        .disclaimer-box .icon { font-size: 48px; text-align: center; margin-bottom: 10px; }
+        .disclaimer-box h2 { text-align: center; color: #fff; font-size: 22px; margin-bottom: 6px; }
+        .disclaimer-box .sub { text-align: center; color: #8899bb; font-size: 14px; margin-bottom: 18px; }
         .disclaimer-box .text {
-            background: rgba(26, 36, 64, 0.4);
+            background: rgba(26,36,64,0.4);
             padding: 16px 20px;
             border-radius: 14px;
             font-size: 14px;
@@ -260,7 +126,7 @@
             font-style: italic;
             margin-top: 8px;
             display: block;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            border-top: 1px solid rgba(255,255,255,0.05);
             padding-top: 8px;
         }
         .disclaimer-box .text .date-info {
@@ -289,10 +155,7 @@
             line-height: 1.5;
             cursor: pointer;
         }
-        .checkbox-row label .em {
-            color: #6c5ce7;
-            font-weight: 600;
-        }
+        .checkbox-row label .em { color: #6c5ce7; font-weight: 600; }
         .disclaimer-actions {
             display: flex;
             gap: 12px;
@@ -307,41 +170,15 @@
             cursor: pointer;
             transition: all .25s;
         }
-        .btn-primary {
-            background: #6c5ce7;
-            color: white;
-        }
-        .btn-primary:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(108, 92, 231, 0.3);
-        }
-        .btn-primary:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            transform: none !important;
-        }
-        .btn-secondary {
-            background: #20232d;
-            color: white;
-            border: 1px solid #343947;
-        }
-        .btn-secondary:hover {
-            background: #2a2e3a;
-        }
-
-        .result-card {
-            text-align: center;
-        }
-        .result-level {
-            font-size: 32px;
-            font-weight: 800;
-            margin-bottom: 8px;
-        }
-        .result-sub {
-            color: #aeb4c2;
-            font-size: 16px;
-            margin-bottom: 6px;
-        }
+        .btn-primary { background: #6c5ce7; color: white; }
+        .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(108,92,231,0.3); }
+        .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+        .btn-secondary { background: #20232d; color: white; border: 1px solid #343947; }
+        .btn-secondary:hover { background: #2a2e3a; }
+        
+        .result-card { text-align: center; }
+        .result-level { font-size: 32px; font-weight: 800; margin-bottom: 8px; }
+        .result-sub { color: #aeb4c2; font-size: 16px; margin-bottom: 6px; }
         .percentage {
             font-size: 76px;
             font-weight: 900;
@@ -349,20 +186,9 @@
             margin: 10px 0;
             color: #6c5ce7;
         }
-        .result-compare {
-            color: #8899bb;
-            font-size: 15px;
-            margin-bottom: 20px;
-        }
-        .result-compare strong {
-            color: #f7971e;
-        }
-        .result-message {
-            color: #b9becb;
-            line-height: 1.6;
-            margin-bottom: 25px;
-            font-size: 16px;
-        }
+        .result-compare { color: #8899bb; font-size: 15px; margin-bottom: 20px; }
+        .result-compare strong { color: #f7971e; }
+        .result-message { color: #b9becb; line-height: 1.6; margin-bottom: 25px; font-size: 16px; }
         .stats {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
@@ -374,18 +200,12 @@
             border-radius: 15px;
             padding: 16px;
         }
-        .stat strong {
-            display: block;
-            font-size: 28px;
-        }
-        .stat .label {
-            color: #9fa5b3;
-            font-size: 13px;
-        }
+        .stat strong { display: block; font-size: 28px; }
+        .stat .label { color: #9fa5b3; font-size: 13px; }
         .stat.green strong { color: #39d98a; }
         .stat.yellow strong { color: #f1c40f; }
         .stat.red strong { color: #ff5c6c; }
-
+        
         .final-divider {
             width: 60%;
             height: 2px;
@@ -407,31 +227,22 @@
             display: inline-block;
         }
         .final-verdict.good {
-            background: rgba(57, 217, 138, 0.15);
+            background: rgba(57,217,138,0.15);
             border: 2px solid #39d98a;
             color: #39d98a;
         }
         .final-verdict.mid {
-            background: rgba(241, 196, 15, 0.15);
+            background: rgba(241,196,15,0.15);
             border: 2px solid #f1c40f;
             color: #f1c40f;
         }
         .final-verdict.bad {
-            background: rgba(255, 92, 108, 0.15);
+            background: rgba(255,92,108,0.15);
             border: 2px solid #ff5c6c;
             color: #ff5c6c;
         }
-        .final-details {
-            color: #9fa5b3;
-            font-size: 14px;
-            line-height: 1.8;
-            margin-top: 8px;
-        }
-        .final-actions {
-            display: flex;
-            gap: 12px;
-            margin-top: 16px;
-        }
+        .final-details { color: #9fa5b3; font-size: 14px; line-height: 1.8; margin-top: 8px; }
+        .final-actions { display: flex; gap: 12px; margin-top: 16px; }
         .share-btn {
             background: #1a8cd8;
             color: white;
@@ -445,11 +256,8 @@
             width: 100%;
             margin-top: 8px;
         }
-        .share-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(26, 140, 216, 0.35);
-        }
-
+        .share-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(26,140,216,0.35); }
+        
         .secret-area {
             display: none;
             margin-top: 20px;
@@ -458,20 +266,9 @@
             background: linear-gradient(135deg, #1a1040, #181b24);
             border: 2px solid #6c5ce7;
         }
-        .secret-area.show {
-            display: block;
-        }
-        .secret-area .secret-title {
-            font-size: 22px;
-            font-weight: 800;
-            color: #6c5ce7;
-            margin-bottom: 4px;
-        }
-        .secret-area .secret-sub {
-            color: #8899bb;
-            font-size: 14px;
-            margin-bottom: 16px;
-        }
+        .secret-area.show { display: block; }
+        .secret-area .secret-title { font-size: 22px; font-weight: 800; color: #6c5ce7; margin-bottom: 4px; }
+        .secret-area .secret-sub { color: #8899bb; font-size: 14px; margin-bottom: 16px; }
         .secret-area .secret-input-wrap {
             display: flex;
             gap: 12px;
@@ -487,15 +284,10 @@
             color: white;
             font-size: 16px;
             outline: none;
-            transition: border-color 0.3s;
             margin: 0;
         }
-        .secret-area .secret-input-wrap input:focus {
-            border-color: #6c5ce7;
-        }
-        .secret-area .secret-input-wrap input:disabled {
-            opacity: 0.5;
-        }
+        .secret-area .secret-input-wrap input:focus { border-color: #6c5ce7; }
+        .secret-area .secret-input-wrap input:disabled { opacity: 0.5; }
         .secret-area .secret-input-wrap .primary {
             flex: 0 0 auto;
             width: auto;
@@ -511,39 +303,19 @@
             text-align: left;
             line-height: 1.6;
         }
-        .secret-area .secret-result.show {
-            display: block;
-        }
-        .secret-area .secret-result.correct {
-            border-left: 4px solid #39d98a;
-        }
-        .secret-area .secret-result .answer-text {
-            color: #8899bb;
-            font-size: 14px;
-            display: block;
-            margin-top: 4px;
-        }
-        .secret-area .secret-result .message {
-            color: #6c5ce7;
-            font-size: 14px;
-            display: block;
-            margin-top: 8px;
-            font-style: italic;
-        }
-
+        .secret-area .secret-result.show { display: block; }
+        .secret-area .secret-result.correct { border-left: 4px solid #39d98a; }
+        .secret-area .secret-result .answer-text { color: #8899bb; font-size: 14px; display: block; margin-top: 4px; }
+        .secret-area .secret-result .message { color: #6c5ce7; font-size: 14px; display: block; margin-top: 8px; font-style: italic; }
+        
         .branch-graph {
-            background: rgba(26, 36, 64, 0.3);
+            background: rgba(26,36,64,0.3);
             border-radius: 14px;
             padding: 12px 16px;
-            border: 1px solid rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255,255,255,0.04);
             margin: 8px 0;
         }
-        .branch-row {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 2px 0;
-        }
+        .branch-row { display: flex; align-items: center; justify-content: center; margin: 2px 0; }
         .branch-dots {
             display: flex;
             flex: 1;
@@ -568,61 +340,20 @@
             min-width: 20px;
             min-height: 20px;
         }
-        .graph-dot .qnum {
-            font-size: 8px;
-            font-weight: 700;
-            color: #fff;
-        }
-        .graph-dot.hard {
-            background: #e74c3c;
-            border-color: #e74c3c;
-        }
-        .graph-dot.hard.active {
-            transform: scale(1.2);
-            box-shadow: 0 0 20px rgba(231, 76, 60, 0.5);
-        }
-        .graph-dot.hard.passed {
-            opacity: 0.6;
-        }
-        .graph-dot.medium {
-            background: #f1c40f;
-            border-color: #f1c40f;
-            color: #0a0e1a;
-        }
-        .graph-dot.medium.active {
-            transform: scale(1.2);
-            box-shadow: 0 0 20px rgba(241, 196, 15, 0.5);
-        }
-        .graph-dot.medium.passed {
-            opacity: 0.6;
-        }
-        .graph-dot.easy {
-            background: #2ecc71;
-            border-color: #2ecc71;
-        }
-        .graph-dot.easy.active {
-            transform: scale(1.2);
-            box-shadow: 0 0 20px rgba(46, 204, 113, 0.5);
-        }
-        .graph-dot.easy.passed {
-            opacity: 0.6;
-        }
-        .graph-dot.timeout {
-            background: #8e44ad;
-            border-color: #8e44ad;
-        }
-        .graph-dot.timeout.active {
-            transform: scale(1.2);
-            box-shadow: 0 0 20px rgba(142, 68, 153, 0.5);
-        }
-        .graph-dot.timeout.passed {
-            opacity: 0.6;
-        }
-        .graph-dot.empty {
-            background: #2a2e3a;
-            border-color: #2a2e3a;
-            opacity: 0.3;
-        }
+        .graph-dot .qnum { font-size: 8px; font-weight: 700; color: #fff; }
+        .graph-dot.hard { background: #e74c3c; border-color: #e74c3c; }
+        .graph-dot.hard.active { transform: scale(1.2); box-shadow: 0 0 20px rgba(231,76,60,0.5); }
+        .graph-dot.hard.passed { opacity: 0.6; }
+        .graph-dot.medium { background: #f1c40f; border-color: #f1c40f; color: #0a0e1a; }
+        .graph-dot.medium.active { transform: scale(1.2); box-shadow: 0 0 20px rgba(241,196,15,0.5); }
+        .graph-dot.medium.passed { opacity: 0.6; }
+        .graph-dot.easy { background: #2ecc71; border-color: #2ecc71; }
+        .graph-dot.easy.active { transform: scale(1.2); box-shadow: 0 0 20px rgba(46,204,113,0.5); }
+        .graph-dot.easy.passed { opacity: 0.6; }
+        .graph-dot.timeout { background: #8e44ad; border-color: #8e44ad; }
+        .graph-dot.timeout.active { transform: scale(1.2); box-shadow: 0 0 20px rgba(142,68,153,0.5); }
+        .graph-dot.timeout.passed { opacity: 0.6; }
+        .graph-dot.empty { background: #2a2e3a; border-color: #2a2e3a; opacity: 0.3; }
         .graph-line {
             width: 12px;
             height: 3px;
@@ -634,7 +365,7 @@
         .graph-line.easy { background: #2ecc71; }
         .graph-line.timeout { background: #8e44ad; }
         .graph-line.empty { background: #2a2e3a; opacity: 0.2; }
-
+        
         .admin-input {
             width: 100%;
             padding: 16px 18px;
@@ -646,13 +377,8 @@
             outline: none;
             font-size: 16px;
         }
-        .admin-input:focus {
-            border-color: #6c5ce7;
-        }
-        .admin-table-wrap {
-            overflow-x: auto;
-            margin-top: 16px;
-        }
+        .admin-input:focus { border-color: #6c5ce7; }
+        .admin-table-wrap { overflow-x: auto; margin-top: 16px; }
         .admin-table {
             width: 100%;
             border-collapse: collapse;
@@ -670,9 +396,7 @@
             padding: 10px 14px;
             border-bottom: 1px solid #1a1d26;
         }
-        .admin-table tr:hover td {
-            background: #1a1d26;
-        }
+        .admin-table tr:hover td { background: #1a1d26; }
         .admin-btn {
             padding: 6px 14px;
             border: none;
@@ -683,20 +407,10 @@
             transition: all .2s;
             margin: 2px;
         }
-        .admin-btn-view {
-            background: #6c5ce7;
-            color: white;
-        }
-        .admin-btn-view:hover {
-            background: #5a4bd1;
-        }
-        .admin-btn-del {
-            background: #5b2029;
-            color: #ff5c6c;
-        }
-        .admin-btn-del:hover {
-            background: #7c2631;
-        }
+        .admin-btn-view { background: #6c5ce7; color: white; }
+        .admin-btn-view:hover { background: #5a4bd1; }
+        .admin-btn-del { background: #5b2029; color: #ff5c6c; }
+        .admin-btn-del:hover { background: #7c2631; }
         .admin-btn-danger {
             background: #5b2029;
             color: #ff5c6c;
@@ -707,9 +421,7 @@
             cursor: pointer;
             transition: all .2s;
         }
-        .admin-btn-danger:hover {
-            background: #7c2631;
-        }
+        .admin-btn-danger:hover { background: #7c2631; }
         .admin-btn-success {
             background: #174d38;
             color: #39d98a;
@@ -720,10 +432,8 @@
             cursor: pointer;
             transition: all .2s;
         }
-        .admin-btn-success:hover {
-            background: #1d5f45;
-        }
-
+        .admin-btn-success:hover { background: #1d5f45; }
+        
         .modal-overlay {
             display: none;
             position: fixed;
@@ -731,16 +441,14 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.85);
+            background: rgba(0,0,0,0.85);
             backdrop-filter: blur(8px);
             z-index: 2000;
             align-items: center;
             justify-content: center;
             padding: 20px;
         }
-        .modal-overlay.active {
-            display: flex;
-        }
+        .modal-overlay.active { display: flex; }
         .modal-box {
             background: #181b24;
             border-radius: 20px;
@@ -749,7 +457,7 @@
             width: 100%;
             max-height: 85vh;
             overflow-y: auto;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255,255,255,0.05);
         }
         .modal-box .header {
             display: flex;
@@ -757,10 +465,7 @@
             align-items: center;
             margin-bottom: 16px;
         }
-        .modal-box .header h2 {
-            color: #fff;
-            font-size: 20px;
-        }
+        .modal-box .header h2 { color: #fff; font-size: 20px; }
         .modal-close {
             background: none;
             border: none;
@@ -768,10 +473,8 @@
             font-size: 28px;
             cursor: pointer;
         }
-        .modal-close:hover {
-            color: #fff;
-        }
-
+        .modal-close:hover { color: #fff; }
+        
         .confetti {
             position: fixed;
             width: 8px;
@@ -782,12 +485,9 @@
             z-index: 9999;
         }
         @keyframes fall {
-            to {
-                transform: translateY(110vh) rotate(720deg);
-                opacity: 0;
-            }
+            to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
         }
-
+        
         .input-error {
             color: #ff5c6c;
             font-size: 14px;
@@ -811,19 +511,11 @@
             max-width: 90%;
             text-align: center;
         }
-        .toast.show {
-            display: block;
-        }
-        .toast.success {
-            border-color: #39d98a;
-        }
-        .toast.error {
-            border-color: #ff5c6c;
-        }
-        .toast.info {
-            border-color: #f7971e;
-        }
-
+        .toast.show { display: block; }
+        .toast.success { border-color: #39d98a; }
+        .toast.error { border-color: #ff5c6c; }
+        .toast.info { border-color: #f7971e; }
+        
         @media (max-width: 640px) {
             h1 { font-size: 32px; }
             .card { padding: 20px; }
@@ -852,10 +544,8 @@
 </head>
 <body>
 
-    <!-- ====== TOAST УВЕДОМЛЕНИЯ ====== -->
     <div class="toast" id="toast"></div>
 
-    <!-- ====== ДИСКЛЕЙМЕР ====== -->
     <div class="disclaimer-overlay" id="disclaimerOverlay">
         <div class="disclaimer-box">
             <div class="icon">⚠️</div>
@@ -884,7 +574,6 @@
         </div>
     </div>
 
-    <!-- ====== МОДАЛКА ПАРОЛЯ ====== -->
     <div class="disclaimer-overlay" id="adminPasswordOverlay">
         <div class="disclaimer-box">
             <div class="icon">🔐</div>
@@ -899,7 +588,6 @@
         </div>
     </div>
 
-    <!-- ====== МОДАЛКА ОТВЕТОВ ====== -->
     <div class="modal-overlay" id="answersModal">
         <div class="modal-box">
             <div class="header">
@@ -910,10 +598,7 @@
         </div>
     </div>
 
-    <!-- ====== ОСНОВНОЙ КОНТЕЙНЕР ====== -->
     <div class="app">
-
-        <!-- START -->
         <section id="start-screen" class="screen active">
             <div class="card">
                 <h1>🎮 На сколько хорошо<br>ты меня знаешь?</h1>
@@ -928,16 +613,13 @@
             </div>
         </section>
 
-        <!-- QUIZ -->
         <section id="quiz-screen" class="screen">
             <div class="card">
                 <div class="topbar">
                     <div id="question-number" class="question-number">Вопрос 1 / 15</div>
                     <div id="timer" class="timer">25</div>
                 </div>
-                <div class="progress">
-                    <div id="progress-bar" class="progress-bar"></div>
-                </div>
+                <div class="progress"><div id="progress-bar" class="progress-bar"></div></div>
                 <div id="question" class="question">Загрузка вопроса...</div>
                 <div id="answers" class="answers"></div>
                 <div id="timeoutOverlay" style="display:none;text-align:center;padding:30px 0;">
@@ -949,7 +631,6 @@
             </div>
         </section>
 
-        <!-- RESULT -->
         <section id="result-screen" class="screen">
             <div class="card result-card">
                 <div id="result-level" class="result-level"></div>
@@ -957,15 +638,12 @@
                 <div id="result-percentage" class="percentage">0%</div>
                 <div id="result-compare" class="result-compare"></div>
                 <div id="result-message" class="result-message"></div>
-
                 <div class="stats">
                     <div class="stat green"><strong id="correct-count">0</strong><span class="label">🟢 100%</span></div>
                     <div class="stat yellow"><strong id="yellow-count">0</strong><span class="label">🟡 65%</span></div>
                     <div class="stat red"><strong id="wrong-count">0</strong><span class="label">🔴 25%</span></div>
                 </div>
-
                 <div class="final-divider"></div>
-
                 <div style="margin:16px 0 20px;">
                     <div style="text-align:center;font-size:14px;color:#f7971e;margin-bottom:12px;font-weight:700;letter-spacing:1px;">🗺️ ПУТЬ ПО ВЕТКАМ</div>
                     <div class="branch-graph">
@@ -977,14 +655,10 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="final-divider"></div>
-
                 <div><span id="finalVerdict" class="final-verdict"></span></div>
                 <div class="final-details" id="finalDetails"></div>
-
                 <div class="final-divider-thick"></div>
-
                 <div class="secret-area" id="secretArea">
                     <div class="secret-title">🔐 Секретный вопрос</div>
                     <div class="secret-sub">Ты набрал больше 60% — тебе доступен особый вопрос!</div>
@@ -995,7 +669,6 @@
                     </div>
                     <div class="secret-result" id="secretResult"></div>
                 </div>
-
                 <div class="final-actions">
                     <button class="share-btn" onclick="shareResult()">📤 Поделиться результатом</button>
                 </div>
@@ -1006,7 +679,6 @@
             </div>
         </section>
 
-        <!-- ADMIN -->
         <section id="admin-screen" class="screen">
             <div class="card">
                 <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;justify-content:center;">
@@ -1019,89 +691,88 @@
                 <p class="subtitle" id="adminStatus">📡 Подключение к базе данных...</p>
                 <div class="admin-table-wrap">
                     <table class="admin-table">
-                        <thead>
-                            <tr><th>Имя</th><th>Статус</th><th>Дата</th><th>Результат</th><th>Действие</th></tr>
-                        </thead>
-                        <tbody id="adminBody">
-                            <tr><td colspan="5" style="text-align:center;color:#8899bb;padding:30px;">⏳ Загрузка данных...</td></tr>
-                        </tbody>
+                        <thead><tr><th>Имя</th><th>Статус</th><th>Дата</th><th>Результат</th><th>Действие</th></tr></thead>
+                        <tbody id="adminBody"><tr><td colspan="5" style="text-align:center;color:#8899bb;padding:30px;">⏳ Загрузка данных...</td></tr></tbody>
                     </table>
                 </div>
             </div>
         </section>
-
     </div>
 
     <script>
         // ============================================================
-        // 🔥 ПОДКЛЮЧЕНИЕ К SUPABASE (ИСПРАВЛЕННОЕ)
+        // 🔥 ПРОВЕРКА ЗАГРУЗКИ SUPABASE
         // ============================================================
         console.log('🚀 Запуск приложения...');
+        console.log('🔍 Проверка supabase:', typeof supabase);
 
-        const SUPABASE_URL = 'https://fgrpcjdrnbdifnhjwduk.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_JM36Q3P15HH-to1Wj34VSg_jGjKZhb';
+        // Если supabase не загружен - ждем
+        if (typeof supabase === 'undefined') {
+            console.log('⏳ Ожидание загрузки supabase...');
+            let attempts = 0;
+            const waitInterval = setInterval(function() {
+                attempts++;
+                console.log('⏳ Попытка ' + attempts);
+                if (typeof supabase !== 'undefined') {
+                    clearInterval(waitInterval);
+                    console.log('✅ supabase загружен!');
+                    startApp();
+                } else if (attempts > 30) {
+                    clearInterval(waitInterval);
+                    console.error('❌ supabase не загрузился');
+                    document.getElementById('adminStatus').textContent = '❌ Ошибка загрузки Supabase';
+                    alert('Ошибка: библиотека Supabase не загружена. Проверьте интернет-соединение.');
+                }
+            }, 300);
+        } else {
+            console.log('✅ supabase уже загружен');
+            startApp();
+        }
 
-        // Переменная для клиента Supabase
+        // ============================================================
+        // 🚀 ЗАПУСК ПРИЛОЖЕНИЯ
+        // ============================================================
         let db = null;
 
-        // Проверяем, загружена ли библиотека
-        if (typeof supabaseJs === 'undefined') {
-            console.error('❌ supabaseJs не загружен!');
-            alert('Ошибка: библиотека Supabase не загружена. Проверьте интернет-соединение и перезагрузите страницу.');
-        } else {
+        function startApp() {
             try {
-                // Используем современный синтаксис
-                const { createClient } = supabaseJs;
-                db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                // Создаем клиент
+                db = supabase.createClient(
+                    'https://fgrpcjdrnbdifnhjwduk.supabase.co',
+                    'sb_publishable_JM36Q3P15HH-to1Wj34VSg_jGjKZhb'
+                );
                 console.log('✅ Supabase клиент создан');
                 document.getElementById('adminStatus').textContent = '✅ База данных подключена';
+                
+                // Проверяем таблицу
+                checkDatabase();
             } catch (e) {
-                console.error('❌ Ошибка создания клиента:', e);
+                console.error('❌ Ошибка:', e);
                 alert('Ошибка подключения к Supabase: ' + e.message);
             }
         }
 
-        // ============================================================
-        // 📋 ПРОВЕРКА ТАБЛИЦЫ
-        // ============================================================
-        async function initDatabase() {
-            if (!db) {
-                console.error('❌ Нет подключения к базе данных');
-                return false;
-            }
-
+        async function checkDatabase() {
             try {
-                console.log('📋 Проверка таблицы players...');
-                const { data, error } = await db
-                    .from('players')
-                    .select('name')
-                    .limit(1);
-
+                const { data, error } = await db.from('players').select('name').limit(1);
                 if (error && error.code === '42P01') {
-                    console.error('❌ Таблица не найдена!');
+                    console.error('❌ Таблица не найдена');
                     document.getElementById('adminStatus').textContent = '⚠️ Таблица не создана';
-                    showToast('⚠️ Таблица "players" не найдена. Создайте её в Supabase Dashboard.', 'error');
-                    return false;
-                }
-
-                if (error) {
+                    showToast('⚠️ Таблица "players" не найдена', 'error');
+                } else if (error) {
                     console.error('❌ Ошибка:', error);
-                    document.getElementById('adminStatus').textContent = '⚠️ Ошибка подключения';
-                    return false;
+                } else {
+                    console.log('✅ Таблица существует');
+                    document.getElementById('adminStatus').textContent = '✅ База данных подключена';
+                    showToast('✅ Приложение готово к работе!', 'success');
                 }
-
-                console.log('✅ Таблица существует');
-                document.getElementById('adminStatus').textContent = '✅ База данных подключена';
-                return true;
             } catch (e) {
-                console.error('Ошибка инициализации:', e);
-                document.getElementById('adminStatus').textContent = '⚠️ Ошибка подключения к БД';
-                return false;
+                console.error('❌ Ошибка:', e);
             }
         }
 
         // ============================================================
-        // 🍞 TOAST УВЕДОМЛЕНИЯ
+        // 🍞 TOAST
         // ============================================================
         let toastTimeout;
 
@@ -1120,36 +791,30 @@
         // 🎮 ДИСКЛЕЙМЕР
         // ============================================================
         function openDisclaimer() {
-            console.log('🔓 openDisclaimer вызвана');
-            const overlay = document.getElementById('disclaimerOverlay');
-            if (overlay) {
-                overlay.classList.add('active');
-                const check = document.getElementById('disclaimerCheck');
-                if (check) check.checked = false;
-                const btn = document.getElementById('acceptBtn');
-                if (btn) btn.disabled = true;
-            }
+            console.log('🔓 openDisclaimer');
+            document.getElementById('disclaimerOverlay').classList.add('active');
+            document.getElementById('disclaimerCheck').checked = false;
+            document.getElementById('acceptBtn').disabled = true;
         }
 
         function closeDisclaimer() {
-            console.log('🔒 closeDisclaimer вызвана');
-            const overlay = document.getElementById('disclaimerOverlay');
-            if (overlay) overlay.classList.remove('active');
+            document.getElementById('disclaimerOverlay').classList.remove('active');
         }
 
         function acceptDisclaimer() {
-            console.log('✅ acceptDisclaimer вызвана');
             const check = document.getElementById('disclaimerCheck');
-            if (!check || !check.checked) {
-                if (check) {
-                    check.style.border = '2px solid #ff5c6c';
-                    setTimeout(() => { check.style.border = ''; }, 1500);
-                }
+            if (!check.checked) {
+                check.style.border = '2px solid #ff5c6c';
+                setTimeout(() => { check.style.border = ''; }, 1500);
                 return;
             }
             closeDisclaimer();
             setTimeout(startQuiz, 300);
         }
+
+        document.getElementById('disclaimerCheck').addEventListener('change', function() {
+            document.getElementById('acceptBtn').disabled = !this.checked;
+        });
 
         // ============================================================
         // 🔐 АДМИН ПАРОЛЬ
@@ -1157,35 +822,23 @@
         const ADMIN_PASSWORD = 'Win44Vad';
 
         function openAdminPassword() {
-            console.log('🔐 openAdminPassword вызвана');
-            const overlay = document.getElementById('adminPasswordOverlay');
-            if (overlay) {
-                overlay.classList.add('active');
-                const input = document.getElementById('adminPasswordInput');
-                if (input) {
-                    input.value = '';
-                    input.focus();
-                }
-                const error = document.getElementById('adminPasswordError');
-                if (error) error.textContent = '';
-            }
+            document.getElementById('adminPasswordOverlay').classList.add('active');
+            document.getElementById('adminPasswordInput').value = '';
+            document.getElementById('adminPasswordError').textContent = '';
+            document.getElementById('adminPasswordInput').focus();
         }
 
         function closeAdminPassword() {
-            console.log('🔒 closeAdminPassword вызвана');
-            const overlay = document.getElementById('adminPasswordOverlay');
-            if (overlay) overlay.classList.remove('active');
+            document.getElementById('adminPasswordOverlay').classList.remove('active');
         }
 
         function checkAdminPassword() {
-            console.log('🔑 checkAdminPassword вызвана');
             const input = document.getElementById('adminPasswordInput');
             const error = document.getElementById('adminPasswordError');
-            if (!input) return;
-
             const password = input.value.trim();
+
             if (!password) {
-                if (error) error.textContent = '⚠️ Введите пароль';
+                error.textContent = '⚠️ Введите пароль';
                 input.style.borderColor = '#ff5c6c';
                 return;
             }
@@ -1196,7 +849,7 @@
                 renderAdmin();
                 showToast('✅ Добро пожаловать в админ-панель!', 'success');
             } else {
-                if (error) error.textContent = '❌ Неверный пароль';
+                error.textContent = '❌ Неверный пароль';
                 input.style.borderColor = '#ff5c6c';
                 input.value = '';
                 input.focus();
@@ -1207,25 +860,19 @@
         // 📱 НАВИГАЦИЯ
         // ============================================================
         function showScreen(id) {
-            console.log('📱 showScreen вызвана:', id);
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            const screen = document.getElementById(id);
-            if (screen) screen.classList.add('active');
+            document.getElementById(id).classList.add('active');
             window.scrollTo({ top: 0, behavior: 'smooth' });
             if (id === 'admin-screen') renderAdmin();
         }
 
         // ============================================================
-        // 📊 РАБОТА С БАЗОЙ (ВСЕ ФУНКЦИИ ИСПОЛЬЗУЮТ db ВМЕСТО supabase)
+        // 📊 РАБОТА С БАЗОЙ
         // ============================================================
         async function savePlayerToCloud(name, data) {
-            if (!db) {
-                console.error('❌ Нет подключения к базе');
-                return false;
-            }
-
+            if (!db) return false;
             try {
-                const payload = {
+                const { error } = await db.from('players').upsert({
                     name: name,
                     is_active: data.isActive || false,
                     completed: data.completed || false,
@@ -1246,48 +893,21 @@
                     secret_answered: data.secretAnswered || false,
                     secret_answer: data.secretAnswer || '',
                     updated_at: new Date().toISOString()
-                };
-
-                const { error } = await db
-                    .from('players')
-                    .upsert(payload, { onConflict: 'name' });
-
-                if (error) {
-                    console.error('❌ Ошибка сохранения:', error);
-                    showToast('⚠️ Ошибка сохранения', 'error');
-                    return false;
-                }
-                console.log('✅ Данные сохранены');
+                }, { onConflict: 'name' });
+                if (error) { console.error('❌ Ошибка:', error); return false; }
                 return true;
-            } catch (e) {
-                console.error('❌ Критическая ошибка:', e);
-                return false;
-            }
+            } catch (e) { console.error('❌ Ошибка:', e); return false; }
         }
 
         async function getPlayerFromCloud(name) {
-            if (!db) {
-                console.error('❌ Нет подключения к базе');
-                return null;
-            }
-
+            if (!db) return null;
             try {
-                const { data, error } = await db
-                    .from('players')
-                    .select('*')
-                    .eq('name', name)
-                    .maybeSingle();
-
+                const { data, error } = await db.from('players').select('*').eq('name', name).maybeSingle();
                 if (error || !data) return null;
                 return {
-                    name: data.name,
-                    isActive: data.is_active,
-                    completed: data.completed,
-                    timeout: data.timeout,
-                    startedAt: data.started_at,
-                    endedAt: data.ended_at,
-                    currentPhase: data.current_phase,
-                    currentQuestion: data.current_question,
+                    name: data.name, isActive: data.is_active, completed: data.completed,
+                    timeout: data.timeout, startedAt: data.started_at, endedAt: data.ended_at,
+                    currentPhase: data.current_phase, currentQuestion: data.current_question,
                     currentBranch: data.current_branch,
                     testScores: JSON.parse(data.test_scores || '[]'),
                     mainAnswers: JSON.parse(data.main_answers || '[]'),
@@ -1300,58 +920,33 @@
                     secretAnswered: data.secret_answered || false,
                     secretAnswer: data.secret_answer || ''
                 };
-            } catch (e) {
-                console.error('❌ Ошибка:', e);
-                return null;
-            }
+            } catch (e) { console.error('❌ Ошибка:', e); return null; }
         }
 
         async function getAllPlayers() {
-            if (!db) {
-                console.error('❌ Нет подключения к базе');
-                return {};
-            }
-
+            if (!db) return {};
             try {
-                const { data, error } = await db
-                    .from('players')
-                    .select('*')
-                    .order('ended_at', { ascending: false });
-
-                if (error) {
-                    console.error('❌ Ошибка получения:', error);
-                    return {};
-                }
-
+                const { data, error } = await db.from('players').select('*').order('ended_at', { ascending: false });
+                if (error) return {};
                 const result = {};
                 data.forEach(row => {
                     result[row.name] = {
-                        name: row.name,
-                        isActive: row.is_active,
-                        completed: row.completed,
-                        timeout: row.timeout,
-                        startedAt: row.started_at,
-                        endedAt: row.ended_at,
-                        currentPhase: row.current_phase,
-                        currentQuestion: row.current_question,
+                        name: row.name, isActive: row.is_active, completed: row.completed,
+                        timeout: row.timeout, startedAt: row.started_at, endedAt: row.ended_at,
+                        currentPhase: row.current_phase, currentQuestion: row.current_question,
                         currentBranch: row.current_branch,
                         testScores: JSON.parse(row.test_scores || '[]'),
                         mainAnswers: JSON.parse(row.main_answers || '[]'),
                         branchHistory: JSON.parse(row.branch_history || '[]'),
                         totalQuestions: row.total_questions || 15,
-                        greenCount: row.green_count || 0,
-                        yellowCount: row.yellow_count || 0,
-                        redCount: row.red_count || 0,
-                        timeoutCount: row.timeout_count || 0,
+                        greenCount: row.green_count || 0, yellowCount: row.yellow_count || 0,
+                        redCount: row.red_count || 0, timeoutCount: row.timeout_count || 0,
                         secretAnswered: row.secret_answered || false,
                         secretAnswer: row.secret_answer || ''
                     };
                 });
                 return result;
-            } catch (e) {
-                console.error('❌ Ошибка:', e);
-                return {};
-            }
+            } catch (e) { console.error('❌ Ошибка:', e); return {}; }
         }
 
         // ============================================================
@@ -1360,86 +955,55 @@
         let playerName = '';
 
         async function startQuiz() {
-            console.log('🚀 startQuiz вызвана!');
-
             const nameInput = document.getElementById('player-name');
             const errorEl = document.getElementById('nameError');
-
-            if (!nameInput) {
-                console.error('❌ Поле ввода имени не найдено');
-                return;
-            }
-
             const name = nameInput.value.trim();
 
             if (!name) {
-                if (errorEl) errorEl.textContent = '⚠️ Введите ваше имя';
+                errorEl.textContent = '⚠️ Введите ваше имя';
                 nameInput.style.borderColor = '#ff5c6c';
                 return;
             }
-
             if (name.length < 2) {
-                if (errorEl) errorEl.textContent = '⚠️ Минимум 2 символа';
+                errorEl.textContent = '⚠️ Минимум 2 символа';
+                nameInput.style.borderColor = '#ff5c6c';
+                return;
+            }
+            if (!/^[a-zA-Zа-яА-ЯёЁ\s\-]+$/.test(name)) {
+                errorEl.textContent = '⚠️ Используйте только буквы!';
                 nameInput.style.borderColor = '#ff5c6c';
                 return;
             }
 
-            const namePattern = /^[a-zA-Zа-яА-ЯёЁ\s\-]+$/;
-            if (!namePattern.test(name)) {
-                if (errorEl) errorEl.textContent = '⚠️ Используйте только буквы!';
-                nameInput.style.borderColor = '#ff5c6c';
-                return;
-            }
-
-            if (errorEl) errorEl.textContent = '';
+            errorEl.textContent = '';
             nameInput.style.borderColor = '';
 
             try {
                 if (!db) {
-                    if (errorEl) errorEl.textContent = '⚠️ Ошибка подключения к базе данных';
-                    showToast('❌ Нет подключения к базе', 'error');
+                    errorEl.textContent = '⚠️ Ошибка подключения к базе данных';
                     return;
                 }
-
                 const existing = await getPlayerFromCloud(name);
                 if (existing && (existing.completed || existing.timeout)) {
-                    if (errorEl) errorEl.textContent = '⛔ Вы уже проходили эту викторину!';
+                    errorEl.textContent = '⛔ Вы уже проходили эту викторину!';
                     nameInput.style.borderColor = '#ff5c6c';
                     return;
                 }
 
                 playerName = name;
-
-                const game = {
-                    name: name,
-                    isActive: true,
-                    completed: false,
-                    timeout: false,
-                    startedAt: new Date().toISOString(),
-                    endedAt: null,
-                    currentPhase: 'test',
-                    currentQuestion: 0,
-                    currentBranch: null,
-                    testScores: [],
-                    mainAnswers: [],
-                    branchHistory: [],
-                    totalQuestions: 15,
-                    greenCount: 0,
-                    yellowCount: 0,
-                    redCount: 0,
-                    timeoutCount: 0,
-                    secretAnswered: false,
-                    secretAnswer: ''
-                };
-
-                await savePlayerToCloud(name, game);
+                await savePlayerToCloud(name, {
+                    isActive: true, completed: false, timeout: false,
+                    startedAt: new Date().toISOString(), endedAt: null,
+                    currentPhase: 'test', currentQuestion: 0, currentBranch: null,
+                    testScores: [], mainAnswers: [], branchHistory: [],
+                    totalQuestions: 15, greenCount: 0, yellowCount: 0,
+                    redCount: 0, timeoutCount: 0, secretAnswered: false, secretAnswer: ''
+                });
                 showToast('🎮 Игра началась! Удачи!', 'success');
                 showScreen('quiz-screen');
-
             } catch (e) {
-                console.error('❌ Критическая ошибка:', e);
-                if (errorEl) errorEl.textContent = '⚠️ Ошибка подключения к серверу';
-                showToast('❌ Ошибка подключения к серверу', 'error');
+                console.error('❌ Ошибка:', e);
+                errorEl.textContent = '⚠️ Ошибка подключения к серверу';
             }
         }
 
@@ -1447,23 +1011,15 @@
         // 🖥️ АДМИН-ПАНЕЛЬ
         // ============================================================
         async function renderAdmin() {
-            console.log('📊 renderAdmin вызвана');
             const tbody = document.getElementById('adminBody');
-            if (!tbody) {
-                console.error('❌ tbody не найден');
-                return;
-            }
-
             if (!db) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#ff5c6c;padding:30px;">❌ Нет подключения к базе данных</td></tr>';
-                document.getElementById('adminStatus').textContent = '❌ Нет подключения';
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#ff5c6c;padding:30px;">❌ Нет подключения к базе</td></tr>';
                 return;
             }
 
             try {
                 const players = await getAllPlayers();
                 const names = Object.keys(players);
-
                 if (names.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#8899bb;padding:30px;">📭 Нет данных</td></tr>';
                     document.getElementById('adminStatus').textContent = '📭 Нет записей';
@@ -1472,26 +1028,22 @@
 
                 tbody.innerHTML = names.map(name => {
                     const p = players[name];
-                    let status = '🟢 Активна';
-                    let statusColor = '#2ecc71';
-                    if (p.completed) { status = '🏁 Завершена';
-                        statusColor = '#f7971e'; }
-                    if (p.timeout) { status = '⏰ Таймаут';
-                        statusColor = '#ff5c6c'; }
-                    if (!p.isActive && !p.completed && !p.timeout) { status = '⏸️ Прервана';
-                        statusColor = '#8899bb'; }
+                    let status = '🟢 Активна', color = '#2ecc71';
+                    if (p.completed) { status = '🏁 Завершена'; color = '#f7971e'; }
+                    if (p.timeout) { status = '⏰ Таймаут'; color = '#ff5c6c'; }
+                    if (!p.isActive && !p.completed && !p.timeout) { status = '⏸️ Прервана'; color = '#8899bb'; }
 
                     const total = p.totalQuestions || 15;
                     const green = p.greenCount || 0;
                     const percent = Math.round((green / total) * 100);
                     const date = p.endedAt ? new Date(p.endedAt).toLocaleString() :
                         (p.startedAt ? new Date(p.startedAt).toLocaleString() : '-');
-                    const isCompleted = p.completed || p.timeout;
                     const badgeColor = percent >= 65 ? '#39d98a' : percent >= 40 ? '#f1c40f' : '#ff5c6c';
+                    const isCompleted = p.completed || p.timeout;
 
                     return `<tr>
                         <td><strong>${name}</strong></td>
-                        <td style="color:${statusColor}">${status}</td>
+                        <td style="color:${color}">${status}</td>
                         <td style="font-size:12px;color:#8899bb;">${date}</td>
                         <td><span style="background:${badgeColor};padding:3px 12px;border-radius:12px;font-size:12px;font-weight:600;color:#0f1117;">${percent}%</span></td>
                         <td>
@@ -1500,230 +1052,120 @@
                         </td>
                     </tr>`;
                 }).join('');
-
                 document.getElementById('adminStatus').textContent = `✅ Загружено ${names.length} записей`;
             } catch (e) {
-                console.error('❌ Ошибка:', e);
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#ff5c6c;padding:30px;">❌ Ошибка загрузки данных</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#ff5c6c;padding:30px;">❌ Ошибка загрузки</td></tr>';
             }
         }
 
         async function viewAnswers(name) {
-            try {
-                const p = await getPlayerFromCloud(name);
-                if (!p) {
-                    showToast('⚠️ Игрок не найден', 'error');
-                    return;
-                }
-
-                document.getElementById('modalTitle').textContent = `📋 Ответы: ${name}`;
-                const body = document.getElementById('modalBody');
-                body.innerHTML = `
-                    <p style="color:#8899bb;margin-bottom:12px;">Статус: ${p.completed ? '🏁 Завершена' : p.timeout ? '⏰ Таймаут' : '⏸️ Прервана'}</p>
-                    <div style="margin-top:12px;padding:10px;background:rgba(26,36,64,0.3);border-radius:8px;font-size:13px;color:#8899bb;">
-                        <strong style="color:#c0d0e0;">📊 Статистика:</strong><br>
-                        🟢 100%: ${p.greenCount || 0} &nbsp;|&nbsp; 🟡 65%: ${p.yellowCount || 0} &nbsp;|&nbsp; 🔴 25%: ${(p.redCount || 0) + (p.timeoutCount || 0)}
-                    </div>
-                `;
-                document.getElementById('answersModal').classList.add('active');
-            } catch (e) {
-                console.error('❌ Ошибка:', e);
-                showToast('❌ Ошибка загрузки ответов', 'error');
-            }
+            const p = await getPlayerFromCloud(name);
+            if (!p) { showToast('⚠️ Игрок не найден', 'error'); return; }
+            document.getElementById('modalTitle').textContent = `📋 Ответы: ${name}`;
+            document.getElementById('modalBody').innerHTML = `
+                <p style="color:#8899bb;">Статус: ${p.completed ? '🏁 Завершена' : p.timeout ? '⏰ Таймаут' : '⏸️ Прервана'}</p>
+                <div style="margin-top:12px;padding:10px;background:rgba(26,36,64,0.3);border-radius:8px;font-size:13px;color:#8899bb;">
+                    <strong>📊 Статистика:</strong><br>
+                    🟢 100%: ${p.greenCount || 0} &nbsp;|&nbsp; 🟡 65%: ${p.yellowCount || 0} &nbsp;|&nbsp; 🔴 25%: ${(p.redCount || 0) + (p.timeoutCount || 0)}
+                </div>
+            `;
+            document.getElementById('answersModal').classList.add('active');
         }
 
-        function closeModal() {
-            document.getElementById('answersModal').classList.remove('active');
-        }
+        function closeModal() { document.getElementById('answersModal').classList.remove('active'); }
 
         async function deletePlayer(name) {
             if (!confirm(`🗑️ Удалить игрока "${name}"?`)) return;
-            if (!db) {
-                showToast('❌ Нет подключения к базе', 'error');
-                return;
-            }
+            if (!db) { showToast('❌ Нет подключения', 'error'); return; }
             try {
-                const { error } = await db.from('players').delete().eq('name', name);
-                if (error) {
-                    showToast('❌ Ошибка удаления', 'error');
-                    return;
-                }
+                await db.from('players').delete().eq('name', name);
                 showToast(`✅ Игрок "${name}" удалён`, 'success');
                 renderAdmin();
-            } catch (e) {
-                showToast('❌ Ошибка удаления', 'error');
-            }
+            } catch (e) { showToast('❌ Ошибка удаления', 'error'); }
         }
 
         async function clearAllData() {
-            if (!confirm('⚠️ Удалить ВСЕ данные? Это действие необратимо!')) return;
-            if (!db) {
-                showToast('❌ Нет подключения к базе', 'error');
-                return;
-            }
+            if (!confirm('⚠️ Удалить ВСЕ данные?')) return;
+            if (!db) { showToast('❌ Нет подключения', 'error'); return; }
             try {
-                const { error } = await db.from('players').delete().neq('name', '');
-                if (error) {
-                    showToast('❌ Ошибка очистки', 'error');
-                    return;
-                }
+                await db.from('players').delete().neq('name', '');
                 showToast('🗑️ Все данные удалены', 'info');
                 renderAdmin();
-            } catch (e) {
-                showToast('❌ Ошибка очистки', 'error');
-            }
+            } catch (e) { showToast('❌ Ошибка очистки', 'error'); }
         }
 
         async function exportData() {
-            try {
-                const players = await getAllPlayers();
-                const names = Object.keys(players);
-                if (names.length === 0) {
-                    showToast('📭 Нет данных для экспорта', 'info');
-                    return;
-                }
-
-                const data = {
-                    exported_at: new Date().toISOString(),
-                    total_players: names.length,
-                    players: players
-                };
-
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `quiz_data_${new Date().toISOString().slice(0, 10)}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-                showToast(`📤 Экспортировано ${names.length} записей`, 'success');
-            } catch (e) {
-                showToast('❌ Ошибка экспорта', 'error');
-            }
+            const players = await getAllPlayers();
+            const names = Object.keys(players);
+            if (names.length === 0) { showToast('📭 Нет данных', 'info'); return; }
+            const blob = new Blob([JSON.stringify({ exported_at: new Date().toISOString(), total_players: names.length, players }, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `quiz_data_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+            showToast(`📤 Экспортировано ${names.length} записей`, 'success');
         }
 
         // ============================================================
-        // 🔗 НАВЕШИВАЕМ ОБРАБОТЧИКИ
+        // 🔗 ОБРАБОТЧИКИ КНОПОК
         // ============================================================
         document.addEventListener('DOMContentLoaded', function() {
             console.log('📄 DOM загружен');
 
-            // Кнопка "Начать викторину"
-            const startBtn = document.getElementById('startBtn');
-            if (startBtn) {
-                startBtn.addEventListener('click', function() {
-                    console.log('🖱️ Клик по "Начать викторину"');
-                    openDisclaimer();
-                });
-                console.log('✅ startBtn обработчик добавлен');
-            } else {
-                console.error('❌ startBtn не найден');
-            }
+            document.getElementById('startBtn').addEventListener('click', openDisclaimer);
+            document.getElementById('adminBtn').addEventListener('click', openAdminPassword);
+            document.getElementById('disclaimerCancelBtn').addEventListener('click', closeDisclaimer);
+            document.getElementById('acceptBtn').addEventListener('click', acceptDisclaimer);
+            document.getElementById('adminCancelBtn').addEventListener('click', closeAdminPassword);
+            document.getElementById('adminLoginBtn').addEventListener('click', checkAdminPassword);
+            document.getElementById('refreshAdminBtn').addEventListener('click', renderAdmin);
+            document.getElementById('clearAllBtn').addEventListener('click', clearAllData);
+            document.getElementById('exportBtn').addEventListener('click', exportData);
 
-            // Кнопка "Админ-панель"
-            const adminBtn = document.getElementById('adminBtn');
-            if (adminBtn) {
-                adminBtn.addEventListener('click', function() {
-                    console.log('🖱️ Клик по "Админ-панель"');
-                    openAdminPassword();
-                });
-                console.log('✅ adminBtn обработчик добавлен');
-            } else {
-                console.error('❌ adminBtn не найден');
-            }
-
-            // Кнопка "Отмена" в дисклеймере
-            const cancelBtn = document.getElementById('disclaimerCancelBtn');
-            if (cancelBtn) {
-                cancelBtn.addEventListener('click', closeDisclaimer);
-            }
-
-            // Кнопка "Принимаю"
-            const acceptBtn = document.getElementById('acceptBtn');
-            if (acceptBtn) {
-                acceptBtn.addEventListener('click', acceptDisclaimer);
-            }
-
-            // Кнопка "Отмена" в админ-панели
-            const adminCancelBtn = document.getElementById('adminCancelBtn');
-            if (adminCancelBtn) {
-                adminCancelBtn.addEventListener('click', closeAdminPassword);
-            }
-
-            // Кнопка "Войти" в админ-панели
-            const adminLoginBtn = document.getElementById('adminLoginBtn');
-            if (adminLoginBtn) {
-                adminLoginBtn.addEventListener('click', checkAdminPassword);
-            }
-
-            // Enter в поле пароля
-            const passwordInput = document.getElementById('adminPasswordInput');
-            if (passwordInput) {
-                passwordInput.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        checkAdminPassword();
-                    }
-                });
-            }
-
-            // Enter в поле имени
-            const nameInput = document.getElementById('player-name');
-            if (nameInput) {
-                nameInput.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        openDisclaimer();
-                    }
-                });
-            }
-
-            // Кнопки в админ-панели
-            const refreshBtn = document.getElementById('refreshAdminBtn');
-            if (refreshBtn) {
-                refreshBtn.addEventListener('click', renderAdmin);
-            }
-
-            const clearBtn = document.getElementById('clearAllBtn');
-            if (clearBtn) {
-                clearBtn.addEventListener('click', clearAllData);
-            }
-
-            const exportBtn = document.getElementById('exportBtn');
-            if (exportBtn) {
-                exportBtn.addEventListener('click', exportData);
-            }
+            document.getElementById('adminPasswordInput').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') { e.preventDefault(); checkAdminPassword(); }
+            });
+            document.getElementById('player-name').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') { e.preventDefault(); openDisclaimer(); }
+            });
 
             console.log('✅ Все обработчики навешаны');
         });
 
-        // ============================================================
-        // 🚀 ЗАПУСК (ТОЛЬКО ЕСЛИ db СОЗДАН)
-        // ============================================================
-        async function initApp() {
-            console.log('🚀 Инициализация приложения...');
-
-            if (!db) {
-                console.error('❌ Нет подключения к базе данных');
-                document.getElementById('adminStatus').textContent = '❌ Нет подключения к БД';
-                showToast('❌ Нет подключения к базе данных', 'error');
-                showScreen('start-screen');
-                return;
-            }
-
-            const connected = await initDatabase();
-            if (connected) {
-                showToast('✅ Приложение готово к работе!', 'success');
-            } else {
-                showToast('⚠️ Проверьте подключение к базе данных', 'error');
-            }
-
-            showScreen('start-screen');
+        // Функции для кнопок в HTML (onclick)
+        function handleSecretTextAnswer() {
+            const input = document.getElementById('secretInput');
+            const answer = input.value.trim();
+            if (!answer) { showToast('⚠️ Напиши ответ', 'error'); return; }
+            input.disabled = true;
+            document.getElementById('secretSubmitBtn').disabled = true;
+            document.getElementById('secretResult').className = 'secret-result show correct';
+            document.getElementById('secretResult').innerHTML = `
+                ✅ Спасибо за честный ответ.<br>
+                <span class="answer-text">Твой ответ: "${answer}"</span>
+                <span class="message">Иногда прошлое живёт в нас дольше, чем мы готовы признать.</span>
+            `;
+            showToast('💬 Спасибо за искренний ответ!', 'success');
         }
 
-        // Запускаем приложение
-        initApp();
-    </script>
+        function shareResult() {
+            const percent = document.getElementById('result-percentage').textContent;
+            const level = document.getElementById('result-level').textContent;
+            const text = `🎮 Я прошёл викторину «На сколько хорошо ты меня знаешь?»\nМой результат: ${percent}\n${level}\n\nПопробуй и ты!`;
+            if (navigator.share) {
+                navigator.share({ title: 'Мой результат', text: text });
+            } else {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast('📋 Результат скопирован!', 'success');
+                });
+            }
+        }
 
+        // ============================================================
+        // 🏁 ПОКАЗЫВАЕМ СТАРТОВЫЙ ЭКРАН
+        // ============================================================
+        showScreen('start-screen');
+    </script>
 </body>
 </html>
